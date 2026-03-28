@@ -10,5 +10,7 @@ import java.util.List;
 public interface StudySessionRepository extends JpaRepository<StudySession, Long> {
 	List<StudySession> getAllByUser_IdAndDeck_Id(Long userId, Long deckId);
 
+	List<StudySession> getAllByUser_Id(Long userId);
+
 	StudySession getStudySessionByIdAndUser_Id(Long id, Long userId);
 }
