@@ -16,3 +16,27 @@ frontend/.env
 backend/target/
 backend/*.log
 backend/.env
+
+# backend module (backend/backend)
+backend/backend/HELP.md
+backend/backend/.gradle/
+backend/backend/build/
+backend/backend/.apt_generated
+backend/backend/.classpath
+backend/backend/.factorypath
+backend/backend/.project
+backend/backend/.settings/
+backend/backend/.springBeans
+backend/backend/.sts4-cache/
+backend/backend/bin/
+backend/backend/.idea/
+backend/backend/*.iws
+backend/backend/*.iml
+backend/backend/*.ipr
+backend/backend/out/
+backend/backend/nbproject/private/
+backend/backend/nbbuild/
+backend/backend/dist/
+backend/backend/nbdist/
+backend/backend/.nb-gradle/
+backend/backend/.vscode/
