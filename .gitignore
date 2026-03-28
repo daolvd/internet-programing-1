@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+
+# backend
+backend/target/
+backend/*.log
+backend/.env
