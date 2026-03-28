@@ -25,6 +25,11 @@ public class CardService {
         return cards.stream().map(this::mapToResponse).toList();
     }
 
+    public List<CardResponse> getAllByUserId(Long userId) {
+        List<Card> cards = cardRepository.findAllByUserId(userId);
+        return cards.stream().map(this::mapToResponse).toList();
+    }
+
     public CardResponse create(Long userId, CardRequest cardRequest) {
         Deck deck = deckRepository.getDeckByIdAndCategory_User_Id(cardRequest.getDeckId(), userId);
         if (deck == null) throw new RuntimeException("Deck not found");

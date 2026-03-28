@@ -23,6 +23,12 @@ public class CardController extends BaseController{
         return ResponseEntity.ok(new ApiResponse<>(true,"ok",responseList));
     }
 
+    @GetMapping("/get-all-by-user")
+    public ResponseEntity<ApiResponse<?>> getAllByUser() {
+        List<CardResponse> responseList = cardService.getAllByUserId(getCurrentUserId());
+        return ResponseEntity.ok(new ApiResponse<>(true, "ok", responseList));
+    }
+
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<?>> create(@RequestBody CardRequest cardRequest) {
         return ResponseEntity.ok(new ApiResponse<>(true, "create success", cardService.create(getCurrentUserId(), cardRequest)));
