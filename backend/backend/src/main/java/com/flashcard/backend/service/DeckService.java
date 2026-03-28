@@ -27,6 +27,11 @@ public class DeckService {
         return ObjectMapperUtils.mapAll(deckList, DeckResponse.class);
     }
 
+    public List<DeckResponse> getAllByUser(Long userId) {
+        List<Deck> deckList = deckRepository.findAllByUserId(userId);
+        return ObjectMapperUtils.mapAll(deckList, DeckResponse.class);
+    }
+
     public DeckResponse updateDeck(Long userId, DeckRequest deckRequest) {
         Deck deck = deckRepository.getDeckByIdAndCategory_User_Id(deckRequest.getId(), userId);
         if (deck == null) throw new RuntimeException("Deck not found");
@@ -49,7 +54,7 @@ public class DeckService {
     public DeckResponse createDeck(Long userId, DeckRequest deckRequest) {
         Deck deck = new Deck();
         deck.setName(deckRequest.getName());
-        Category category = categoryRepository.getCategoryByIdAndUser_Id(userId, deckRequest.getCategoryId());
+        Category category = categoryRepository.getCategoryByIdAndUser_Id( deckRequest.getCategoryId(),userId);
         if (category == null) throw new RuntimeException("Category not found");
         deck.setCategory(category);
         deckRepository.save(deck);

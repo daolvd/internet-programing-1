@@ -27,6 +27,13 @@ public class DeckController extends BaseController {
         return ResponseEntity.ok(new ApiResponse<>(true, "get all success", deckResponseList));
     }
 
+    @GetMapping("/get-all-by-user")
+    public ResponseEntity<ApiResponse<List<DeckResponse>>> getAllDeckByUser() {
+        Long userId = getCurrentUserId();
+        List<DeckResponse> deckResponseList = deckService.getAllByUser(userId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "get all by user success", deckResponseList));
+    }
+
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<?>> createDeck(@RequestBody DeckRequest deckRequest) {
         Long userId = getCurrentUserId();
@@ -34,13 +41,13 @@ public class DeckController extends BaseController {
         return ResponseEntity.ok(new ApiResponse<>(true, "get all success", deckService.createDeck(userId, deckRequest)));
     }
 
-    @RequestMapping("/update")
+    @PutMapping("/update")
     public ResponseEntity<ApiResponse<?>> updateDeck(@RequestBody DeckRequest deckRequest) {
         Long userId = getCurrentUserId();
         return ResponseEntity.ok(new ApiResponse<>(true, "get all success", deckService.updateDeck(userId,deckRequest)));
     }
 
-    @RequestMapping("/delete")
+    @DeleteMapping("/delete")
     public ResponseEntity<ApiResponse<?>> deleteDeck(@RequestParam("deckId") Long deckId) {
         Long userId = getCurrentUserId();
         return ResponseEntity.ok(new ApiResponse<>(true, "get all success", deckService.deleteDeck(userId, deckId)));
