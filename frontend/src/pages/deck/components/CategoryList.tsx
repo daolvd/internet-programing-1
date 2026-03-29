@@ -2,7 +2,7 @@ import CategoryCard from "./CategoryCard";
 import { useCategories } from "../../../hook/CategoryHook";
 import { useNotification } from "../../../components/common/NotificationProvider";
 import { useConfirm } from "../../../components/common/ConfirmProvider";
-import { getCategoryById, getCategoryName } from "../../../services/DeckServices";
+import { getCategoryById } from "../../../services/DeckServices";
 
 
 interface Props {

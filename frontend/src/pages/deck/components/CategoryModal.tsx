@@ -34,7 +34,7 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
       deck.categoryId = selectedCategoryId;
       // Background sync
       syncUpdateDeck(deckId, deck.name, selectedCategoryId)
-        .catch(() => notify("Failed to sync deck assignment.", "error"));
+        .catch((err) => notify("Failed to sync deck assignment: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
     } else {
       const originalCategoryId = originalCategories[deckId];
       const targetCategoryId = (originalCategoryId !== undefined && originalCategoryId !== selectedCategoryId)
@@ -44,7 +44,7 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
       deck.categoryId = targetCategoryId;
       // Background sync
       syncUpdateDeck(deckId, deck.name, targetCategoryId)
-        .catch(() => notify("Failed to sync deck assignment.", "error"));
+        .catch((err) => notify("Failed to sync deck assignment: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
 
       setOriginalCategories((prev) => {
         const rest = { ...prev };
@@ -186,13 +186,13 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
                 allCategories[index].name = categoryName.trim();
                 syncUpdateCategory(selectedCategoryId, categoryName.trim())
                   .then(() => syncRefreshCategories())
-                  .catch(() => notify("Failed to sync category update.", "error"));
+                  .catch((err) => notify("Failed to sync category update: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
               } else {
                 // Create new category (local-first)
                 createCategory(categoryName.trim());
                 syncCreateCategory(categoryName.trim())
                   .then(() => syncRefreshCategories())
-                  .catch(() => notify("Failed to create category.", "error"));
+                  .catch((err) => notify("Failed to create category: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
               }
             } else {
               syncRefreshCategories().catch(() => {});

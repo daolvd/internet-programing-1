@@ -20,7 +20,7 @@ export function useDeck(categoryId: number, openModel: boolean) {
 
     // Background sync
     syncDeleteDeck(id)
-      .catch((err: any) => notify("Failed to sync delete: " + (err?.message || "Unknown error"), "error"));
+      .catch((err) => notify("Failed to sync delete: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
   };
 
   return {
@@ -42,7 +42,7 @@ export function useCards(deckId: number) {
     setLoading(true);
     fetchCardsByDeck(deckId)
       .then((cards) => setData(cards))
-      .catch((err: any) => notify("Failed to load cards: " + (err?.message || "Unknown error"), "error"))
+      .catch((err) => notify("Failed to load cards: " + (err instanceof Error ? err.message : "Unknown error"), "error"))
       .finally(() => setLoading(false));
   }, [deckId, notify]);
 
@@ -52,7 +52,7 @@ export function useCards(deckId: number) {
 
     // Background sync
     syncDeleteCard(id)
-      .catch((err: any) => notify("Failed to sync delete: " + (err?.message || "Unknown error"), "error"));
+      .catch((err) => notify("Failed to sync delete: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
   };
 
   const addCard = (card: Card) => {
@@ -67,7 +67,7 @@ export function useCards(deckId: number) {
         if (idx !== -1) allCards[idx] = { ...allCards[idx], id: serverCard.id };
         setData((prev) => prev.map((c) => c.id === card.id ? { ...c, id: serverCard.id } : c));
       })
-      .catch((err: any) => notify("Failed to sync card: " + (err?.message || "Unknown error"), "error"));
+      .catch((err) => notify("Failed to sync card: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
   };
 
   const updateCard = (id: number, question: string, answer: string) => {
@@ -84,7 +84,7 @@ export function useCards(deckId: number) {
     // Background sync
     if (existing) {
       syncUpdateCard(id, question, answer, existing.status, existing.deckId)
-        .catch((err: any) => notify("Failed to sync update: " + (err?.message || "Unknown error"), "error"));
+        .catch((err) => notify("Failed to sync update: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
     }
   };
 

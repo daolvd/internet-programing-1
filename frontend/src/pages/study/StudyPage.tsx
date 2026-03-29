@@ -361,7 +361,14 @@ export default function StudyPage() {
                 startStudySessionIfNeeded();
                 next();
               }}
-              onReveal={revealQuickviewAnswer}
+              onReveal={() => {
+                if (show) {
+                  setShow(false);
+                  return;
+                }
+                revealQuickviewAnswer();
+              }}
+              isRevealed={show}
             />
           </div>
         </>

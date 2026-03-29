@@ -3,15 +3,21 @@ import { useNavigate } from "react-router-dom";
 import Modal from "../../../components/modal/Modal";
 import type { DeckMetricResponse } from "../../../services/MetricsService";
 import { formatPercent } from "../../../services/StatsFormulaService";
-import { useAllDecksOptimistic } from "../../../hook/DeckPerformanceHook";
 
 interface DeckPerformanceTableProps {
   deckMetrics: DeckMetricResponse[];
 }
 
-function AllDecksModal({ onClose, openDeck }: { onClose: () => void, openDeck: (id: number) => void }) {
-  const allDecksData = useAllDecksOptimistic();
-  const shouldScroll = allDecksData.length > 9;
+function AllDecksModal({
+  onClose,
+  openDeck,
+  deckMetrics,
+}: {
+  onClose: () => void;
+  openDeck: (id: number) => void;
+  deckMetrics: DeckMetricResponse[];
+}) {
+  const shouldScroll = deckMetrics.length > 9;
 
   return (
     <Modal onClose={onClose}>
@@ -22,17 +28,17 @@ function AllDecksModal({ onClose, openDeck }: { onClose: () => void, openDeck: (
 
       <div className={`p-5 ${shouldScroll ? "max-h-[70vh] overflow-y-auto" : ""}`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {allDecksData.map((deck) => (
-            <div key={deck.id} className="border rounded-xl p-4 bg-gray-50 space-y-2">
-              <p className="font-semibold text-gray-800">{deck.name}</p>
-              <p className="text-sm text-gray-500">Mastery: {deck.progress}%</p>
-              <p className="text-sm text-gray-500">Cards: {deck.cards}</p>
+          {deckMetrics.map((deck) => (
+            <div key={deck.deckId} className="border rounded-xl p-4 bg-gray-50 space-y-2">
+              <p className="font-semibold text-gray-800">{deck.deckName}</p>
+              <p className="text-sm text-gray-500">Mastery: {formatPercent(deck.mastery)}</p>
+              <p className="text-sm text-gray-500">Cards: {deck.reviewedCards}/{deck.totalCards}</p>
               <p className="text-xs text-gray-400">
                 Last active: {new Date(deck.lastActive).toLocaleString()}
               </p>
               <button
                 type="button"
-                onClick={() => openDeck(deck.id)}
+                onClick={() => openDeck(deck.deckId)}
                 className="mt-2 w-full bg-blue-500 text-white py-2 rounded-lg text-sm"
               >
                 Study Now
@@ -117,7 +123,11 @@ export default function DeckPerformanceTable({ deckMetrics }: DeckPerformanceTab
       </div>
 
       {isOpen && (
-        <AllDecksModal onClose={() => setIsOpen(false)} openDeck={openDeck} />
+        <AllDecksModal
+          onClose={() => setIsOpen(false)}
+          openDeck={openDeck}
+          deckMetrics={deckMetrics}
+        />
       )}
     </>
   );

@@ -1,6 +1,13 @@
-import { ArrowLeft, ArrowRight, Eye } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 
-export default function StudyControls({ onPrev, onNext, onReveal }: { onPrev: () => void; onNext: () => void; onReveal: () => void }) {
+interface StudyControlsProps {
+  onPrev: () => void;
+  onNext: () => void;
+  onReveal: () => void;
+  isRevealed: boolean;
+}
+
+export default function StudyControls({ onPrev, onNext, onReveal, isRevealed }: StudyControlsProps) {
   return (
     <div className="flex items-center gap-4">
 
@@ -16,8 +23,8 @@ export default function StudyControls({ onPrev, onNext, onReveal }: { onPrev: ()
         onClick={onReveal}
         className="px-6 py-2 bg-blue-500 text-white rounded-lg flex items-center gap-2"
       >
-        <Eye className="w-4 h-4" />
-        Reveal Answer
+        {isRevealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        {isRevealed ? "Hide Answer" : "Reveal Answer"}
       </button>
 
       <button

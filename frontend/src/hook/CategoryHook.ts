@@ -43,7 +43,7 @@ export function useCategories(refreshTrigger?: unknown) {
           refreshCategories();
         }
       })
-      .catch((err: any) => notify("Failed to sync category: " + (err?.message || "Unknown error"), "error"));
+      .catch((err) => notify("Failed to sync category: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
   }
 
   function deleteCategory(id: number): number {
@@ -62,7 +62,7 @@ export function useCategories(refreshTrigger?: unknown) {
 
       // Background sync
       syncDeleteCategory(id)
-        .catch((err: any) => notify("Failed to sync delete: " + (err?.message || "Unknown error"), "error"));
+        .catch((err) => notify("Failed to sync delete: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
     }
 
     return nearestId;
@@ -76,7 +76,7 @@ export function useCategories(refreshTrigger?: unknown) {
 
       // Background sync
       syncUpdateCategory(id, name)
-        .catch((err: any) => notify("Failed to sync update: " + (err?.message || "Unknown error"), "error"));
+        .catch((err) => notify("Failed to sync update: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
     } else {
       createCategory(id, name, decks, cards);
     }

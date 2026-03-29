@@ -45,6 +45,15 @@ export default function LearnCardPanel({ cards, onQueueSizeChange, onProgressCha
     [answerFeedback]
   );
 
+  const handleNextClick = () => {
+    if (learnAnswerInput.trim()) {
+      handleAnswerEnter();
+      return;
+    }
+
+    handleNext();
+  };
+
   return (
     <div
       className="w-full max-w-3xl mt-6 bg-white rounded-2xl shadow-lg border p-6 space-y-4 perspective transform-style transition-transform duration-300"
@@ -168,7 +177,7 @@ export default function LearnCardPanel({ cards, onQueueSizeChange, onProgressCha
             </button>
             <button
               type="button"
-              onClick={handleNext}
+              onClick={handleNextClick}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg flex items-center gap-2 text-sm"
             >
               Next

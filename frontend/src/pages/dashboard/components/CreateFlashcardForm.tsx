@@ -70,7 +70,7 @@ export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardForm
         if (idx !== -1) allCards[idx] = { ...allCards[idx], id: serverCard.id };
         onCardAdded?.();
       })
-      .catch(() => notify("Failed to sync card to server.", "error"));
+      .catch((err) => notify("Failed to sync card: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
 
     const deckIndex = allDecks.findIndex((deck) => deck.id === selectedDeckId);
     if (deckIndex !== -1) {
