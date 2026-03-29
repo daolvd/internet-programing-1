@@ -15,5 +15,25 @@ public interface CardReviewRepository extends JpaRepository<CardReview, Long> {
 	@Query("SELECT cr FROM CardReview cr JOIN cr.studySession ss WHERE ss.user.id = :userId")
 	List<CardReview> findAllByUserId(@Param("userId") Long userId);
 
+	@Query("""
+			SELECT cr
+			FROM CardReview cr
+			JOIN cr.card c
+			JOIN c.deck d
+			JOIN d.category cat
+			WHERE cat.user.id = :userId AND cat.id = :categoryId
+			""")
+	List<CardReview> findAllByCategoryIdAndUserId(@Param("categoryId") Long categoryId, @Param("userId") Long userId);
+
+	@Query("""
+			SELECT cr
+			FROM CardReview cr
+			JOIN cr.card c
+			JOIN c.deck d
+			JOIN d.category cat
+			WHERE cat.user.id = :userId AND d.id = :deckId
+			""")
+	List<CardReview> findAllByDeckIdAndUserId(@Param("deckId") Long deckId, @Param("userId") Long userId);
+
 	CardReview getCardReviewByIdAndStudySession_User_Id(Long id, Long userId);
 }

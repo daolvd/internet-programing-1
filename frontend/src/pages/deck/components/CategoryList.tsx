@@ -8,10 +8,12 @@ interface Props {
   selectedCategoryId: number;
   OnselectedCategoryId: (id: number) => void;
   onEditCategory: (id: number) => void;
+  categoryModalOpen?: boolean;
+  refreshTrigger?: number;
 }
 
-export default function CategoryList({ selectedCategoryId ,OnselectedCategoryId, onEditCategory}: Props) {
-  const { categories, deleteCategory } = useCategories();
+export default function CategoryList({ selectedCategoryId, OnselectedCategoryId, onEditCategory, categoryModalOpen, refreshTrigger }: Props) {
+  const { categories, deleteCategory } = useCategories(categoryModalOpen || refreshTrigger);
   const { notify } = useNotification();
   const { confirm } = useConfirm();
   

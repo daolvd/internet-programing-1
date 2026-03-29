@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
-import { allCards, allCategories, allDecks, createCard } from "../../../services/DeckServices";
+import { allCards, allCategories, allDecks, createCard, syncCreateCard } from "../../../services/DeckServices";
 import { useNotification } from "../../../components/common/NotificationProvider";
 
-export default function CreateFlashcardForm() {
+interface CreateFlashcardFormProps {
+  onCardAdded?: () => void;
+}
+
+export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardFormProps = {}) {
   const { notify } = useNotification();
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -62,9 +66,18 @@ export default function CreateFlashcardForm() {
       status: "Don't know",
     });
 
+    // Sync to server
+    syncCreateCard(trimmedQuestion, trimmedAnswer, "Don't know", selectedDeckId)
+      .then((serverCard) => {
+        const idx = allCards.findIndex((c) => c.id === newCardId);
+        if (idx !== -1) allCards[idx] = { ...allCards[idx], id: serverCard.id };
+        onCardAdded?.();
+      })
+      .catch(() => notify("Failed to sync card to server.", "error"));
+
     const deckIndex = allDecks.findIndex((deck) => deck.id === selectedDeckId);
     if (deckIndex !== -1) {
-     allDecks[deckIndex].cards = allDecks[deckIndex].cards + 1;
+      allDecks[deckIndex].cards = allDecks[deckIndex].cards + 1;
     }
 
     setQuestion("");

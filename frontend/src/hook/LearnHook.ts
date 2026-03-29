@@ -44,8 +44,19 @@ export function useLearnSession({
   const autoNextTimeoutRef = useRef<number | null>(null);
   const startedAtRef = useRef<number>(Date.now());
 
+  const sortCardsByPriority = (newCards: Card[]) => {
+    return [...newCards]
+      .map((card, originalIndex) => ({ card, originalIndex }))
+      .sort((a, b) => {
+        const priorityDiff = getStatusPriority(a.card.status) - getStatusPriority(b.card.status);
+        if (priorityDiff !== 0) return priorityDiff;
+        return a.originalIndex - b.originalIndex;
+      })
+      .map(entry => entry.card);
+  };
+
   useEffect(() => {
-    setLearnQueue(cards);
+    setLearnQueue(sortCardsByPriority(cards));
     setLearnIndex(0);
     setLearnAnswerInput("");
     setLearnChoice("");
@@ -134,23 +145,13 @@ export function useLearnSession({
           : card
       ));
 
-      // Keep ordering stable inside each rating bucket.
-      const ordered = updated
-        .map((card, originalIndex) => ({ card, originalIndex }))
-        .sort((a, b) => {
-          const priorityDiff = getStatusPriority(a.card.status) - getStatusPriority(b.card.status);
-          if (priorityDiff !== 0) return priorityDiff;
-          return a.originalIndex - b.originalIndex;
-        })
-        .map((entry) => entry.card);
-
-      const currentIndexInOrdered = ordered.findIndex((card) => card.id === targetCard.id);
-      if (ordered.length === 0) {
+      const currentIndexInOrdered = prev.findIndex((card) => card.id === targetCard.id);
+      if (updated.length === 0) {
         setLearnIndex(0);
         setIsCompleted(true);
       } else if (shouldAdvance) {
-        if (currentIndexInOrdered >= ordered.length - 1) {
-          setLearnIndex(ordered.length - 1);
+        if (currentIndexInOrdered >= updated.length - 1) {
+          setLearnIndex(updated.length - 1);
           setIsCompleted(true);
         } else {
           setLearnIndex(currentIndexInOrdered + 1);
@@ -161,7 +162,7 @@ export function useLearnSession({
         setIsCompleted(false);
       }
 
-      return ordered;
+      return updated;
     });
   };
 
@@ -239,6 +240,7 @@ export function useLearnSession({
   const handleReviewAgain = () => {
     clearAutoNext();
     setIsCompleted(false);
+    setLearnQueue(prev => sortCardsByPriority(prev));
     setLearnIndex(0);
     resetInputState();
     startedAtRef.current = Date.now();

@@ -1,14 +1,54 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Modal from "../../../components/modal/Modal";
-import { useDeckPerformanceData } from "../../../hook/DeckPerformanceHook";
+import type { DeckMetricResponse } from "../../../services/MetricsService";
+import { formatPercent } from "../../../services/StatsFormulaService";
+import { useAllDecksOptimistic } from "../../../hook/DeckPerformanceHook";
 
-export default function DeckPerformanceTable() {
-  const data = useDeckPerformanceData();
-  const allDecksData = useDeckPerformanceData(0);
+interface DeckPerformanceTableProps {
+  deckMetrics: DeckMetricResponse[];
+}
+
+function AllDecksModal({ onClose, openDeck }: { onClose: () => void, openDeck: (id: number) => void }) {
+  const allDecksData = useAllDecksOptimistic();
+  const shouldScroll = allDecksData.length > 9;
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="p-5 border-b">
+        <h3 className="font-semibold text-lg">All Decks</h3>
+        <p className="text-sm text-gray-500">Choose a deck to continue studying.</p>
+      </div>
+
+      <div className={`p-5 ${shouldScroll ? "max-h-[70vh] overflow-y-auto" : ""}`}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {allDecksData.map((deck) => (
+            <div key={deck.id} className="border rounded-xl p-4 bg-gray-50 space-y-2">
+              <p className="font-semibold text-gray-800">{deck.name}</p>
+              <p className="text-sm text-gray-500">Mastery: {deck.progress}%</p>
+              <p className="text-sm text-gray-500">Cards: {deck.cards}</p>
+              <p className="text-xs text-gray-400">
+                Last active: {new Date(deck.lastActive).toLocaleString()}
+              </p>
+              <button
+                type="button"
+                onClick={() => openDeck(deck.id)}
+                className="mt-2 w-full bg-blue-500 text-white py-2 rounded-lg text-sm"
+              >
+                Study Now
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+export default function DeckPerformanceTable({ deckMetrics }: DeckPerformanceTableProps) {
+  const topRecent = deckMetrics.slice(0, 4);
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const shouldScrollAllDecks = allDecksData.length > 9;
 
   const openDeck = (deckId: number) => {
     setIsOpen(false);
@@ -35,25 +75,25 @@ export default function DeckPerformanceTable() {
           </thead>
 
           <tbody>
-            {data.map((deck) => (
-              <tr key={deck.id} className="border-t">
+            {topRecent.map((deck) => (
+              <tr key={deck.deckId} className="border-t">
 
-                <td className="p-4 font-medium">{deck.name}</td>
+                <td className="p-4 font-medium">{deck.deckName}</td>
 
                 {/* Progress */}
                 <td>
                   <div className="w-32 h-2 bg-gray-100 rounded mx-auto">
                     <div
                       className="h-full bg-blue-500 rounded"
-                      style={{ width: `${deck.progress}%` }}
+                      style={{ width: `${Math.round(deck.mastery * 100)}%` }}
                     />
                   </div>
                 </td>
 
-                <td className="text-center">{deck.cards}</td>
+                <td className="text-center">{deck.reviewedCards}/{deck.totalCards}</td>
 
                 <td className="text-center text-blue-500 font-medium">
-                  {deck.efficiency}
+                  {formatPercent(deck.efficiency)}
                 </td>
 
                 <td className="text-center">
@@ -77,34 +117,7 @@ export default function DeckPerformanceTable() {
       </div>
 
       {isOpen && (
-        <Modal onClose={() => setIsOpen(false)}>
-          <div className="p-5 border-b">
-            <h3 className="font-semibold text-lg">All Decks</h3>
-            <p className="text-sm text-gray-500">Choose a deck to continue studying.</p>
-          </div>
-
-          <div className={`p-5 ${shouldScrollAllDecks ? "max-h-[70vh] overflow-y-auto" : ""}`}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {allDecksData.map((deck) => (
-                <div key={deck.id} className="border rounded-xl p-4 bg-gray-50 space-y-2">
-                  <p className="font-semibold text-gray-800">{deck.name}</p>
-                  <p className="text-sm text-gray-500">Mastery: {deck.progress}%</p>
-                  <p className="text-sm text-gray-500">Cards: {deck.cards}</p>
-                  <p className="text-xs text-gray-400">
-                    Last active: {new Date(deck.lastActive).toLocaleString()}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => openDeck(deck.id)}
-                    className="mt-2 w-full bg-blue-500 text-white py-2 rounded-lg text-sm"
-                  >
-                    Study Now
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Modal>
+        <AllDecksModal onClose={() => setIsOpen(false)} openDeck={openDeck} />
       )}
     </>
   );

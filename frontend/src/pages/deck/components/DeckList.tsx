@@ -4,7 +4,7 @@ import CreateDeckCard from "./CreateDeckCard";
 import DeckModal from "./DeckModal";
 import { useDeck } from "../../../hook/DeckHook";
 
-export default function DeckList( {selectedCategoryId, categoryModalOpen} : {selectedCategoryId : number; categoryModalOpen?: boolean}) {
+export default function DeckList( {selectedCategoryId, categoryModalOpen, onDeckChange} : {selectedCategoryId : number; categoryModalOpen?: boolean; onDeckChange?: () => void}) {
   const [openModal, setOpenModal] = useState(false);
   const {decks, deleteDeck} = useDeck(selectedCategoryId, openModal || categoryModalOpen || false);
   const [selectedEditDeck, setSelectedEditDeck] = useState<number>(0);
@@ -13,6 +13,7 @@ export default function DeckList( {selectedCategoryId, categoryModalOpen} : {sel
   // delete handler
   const handleDelete = (id:number) => {
     deleteDeck(id);
+    onDeckChange?.();
   };
 
   return (
@@ -39,7 +40,10 @@ export default function DeckList( {selectedCategoryId, categoryModalOpen} : {sel
 
       {/* MODAL */}
       {openModal && (
-        <DeckModal deckId={selectedEditDeck} selectedCategoryId={selectedCategoryId} onClose={() => setOpenModal(false)} />
+        <DeckModal deckId={selectedEditDeck} selectedCategoryId={selectedCategoryId} onClose={() => {
+          setOpenModal(false);
+          onDeckChange?.();
+        }} />
       )}
 
       {/* LIST */}

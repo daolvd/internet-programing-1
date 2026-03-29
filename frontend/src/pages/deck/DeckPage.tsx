@@ -7,6 +7,7 @@ import { useState } from "react";
 export default function DeckPage() {
     const [openCreateCategory, createCategory] = useState(false);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number>(1);
+    const [deckUpdateCounter, setDeckUpdateCounter] = useState(0);
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen space-y-8">
@@ -37,13 +38,19 @@ export default function DeckPage() {
       {/* CATEGORY LIST */}
       <CategoryList selectedCategoryId={selectedCategoryId}
        OnselectedCategoryId={setSelectedCategoryId}
+       categoryModalOpen={openCreateCategory}
+       refreshTrigger={deckUpdateCounter}
        onEditCategory={(id) => {
          setSelectedCategoryId(id);
          createCategory(true);
        }} />
 
       {/* DECK LIST */}
-      <DeckList selectedCategoryId={selectedCategoryId} categoryModalOpen={openCreateCategory} />
+      <DeckList 
+        selectedCategoryId={selectedCategoryId} 
+        categoryModalOpen={openCreateCategory} 
+        onDeckChange={() => setDeckUpdateCounter(prev => prev + 1)} 
+      />
 
     </div>
   );

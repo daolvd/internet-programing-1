@@ -1,8 +1,11 @@
+import { useState } from "react";
 import CreateFlashcardForm from "./components/CreateFlashcardForm";
 import ProgressCard from "./components/ProgressCard";
 import RecentCards from "./components/RecentDeck";
 
 export default function DashboardPage() {
+  const [refreshKey, setRefreshKey] = useState(0);
+
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
 
@@ -21,13 +24,13 @@ export default function DashboardPage() {
 
         {/* LEFT */}
         <div className="space-y-6">
-          <CreateFlashcardForm />
+          <CreateFlashcardForm onCardAdded={() => setRefreshKey(prev => prev + 1)} />
           <ProgressCard />
         </div>
 
         {/* RIGHT */}
         <div className="col-span-2">
-          <RecentCards />
+          <RecentCards refreshKey={refreshKey} />
         </div>
 
       </div>

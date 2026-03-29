@@ -37,6 +37,11 @@ public class CardReviewController extends BaseController {
         return ResponseEntity.ok(new ApiResponse<>(true, "create success", cardReviewService.create(getCurrentUserId(), request)));
     }
 
+    @PostMapping("/create-list")
+    public ResponseEntity<ApiResponse<?>> createList(@RequestBody List<CardReviewRequest> requests) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "create list success", cardReviewService.createList(getCurrentUserId(), requests)));
+    }
+
     @PutMapping("/update")
     public ResponseEntity<ApiResponse<?>> update(@RequestBody CardReviewRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(true, "update success", cardReviewService.update(getCurrentUserId(), request)));

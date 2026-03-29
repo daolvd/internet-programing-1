@@ -1,11 +1,11 @@
 import { X, Folder } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import Modal from "../../../components/modal/Modal";
-import { allDecks, allCategories } from "../../../services/DeckServices";
-import { getDecksByCategory } from "../../../services/CategroyService";
+import { allDecks, allCategories, getDecksByCategory, syncUpdateDeck, syncUpdateCategory, getGeneralCategoryId, syncRefreshCategories, syncCreateCategory, createCategory } from "../../../services/DeckServices";
+import { useNotification } from "../../../components/common/NotificationProvider";
 
-
-export default function CategoryModal({ onClose, selectedCategoryId } : { onClose: () => void; selectedCategoryId: number }) {
+export default function CategoryModal({ onClose, selectedCategoryId }: { onClose: () => void; selectedCategoryId: number }) {
+  const { notify } = useNotification();
   const [showAddDeckList, setShowAddDeckList] = useState(false);
   const [originalCategories, setOriginalCategories] = useState<Record<number, number>>({});
   const [version, setVersion] = useState(0);
@@ -35,21 +35,26 @@ export default function CategoryModal({ onClose, selectedCategoryId } : { onClos
         return { ...prev, [deckId]: deck.categoryId };
       });
       deck.categoryId = selectedCategoryId;
+      // Background sync
+      syncUpdateDeck(deckId, deck.name, selectedCategoryId)
+        .catch(() => notify("Failed to sync deck assignment.", "error"));
     } else {
       const originalCategoryId = originalCategories[deckId];
-      
-      if (originalCategoryId !== undefined && originalCategoryId !== selectedCategoryId) {
-        deck.categoryId = originalCategoryId;
-      } else {
-        deck.categoryId = 0; // Move to General category
-      }
-      
+      const targetCategoryId = (originalCategoryId !== undefined && originalCategoryId !== selectedCategoryId)
+        ? originalCategoryId
+        : getGeneralCategoryId();
+
+      deck.categoryId = targetCategoryId;
+      // Background sync
+      syncUpdateDeck(deckId, deck.name, targetCategoryId)
+        .catch(() => notify("Failed to sync deck assignment.", "error"));
+
       setOriginalCategories((prev) => {
         const { [deckId]: _, ...rest } = prev;
         return rest;
       });
     }
-    
+
     setVersion((prev) => prev + 1);
   };
 
@@ -150,7 +155,7 @@ export default function CategoryModal({ onClose, selectedCategoryId } : { onClos
 
                     {/* ACTION */}
                     <div className="flex gap-2 flex-shrink-0 ml-2">
-                   
+
                     </div>
 
                   </div>
@@ -179,8 +184,20 @@ export default function CategoryModal({ onClose, selectedCategoryId } : { onClos
             if (categoryName.trim()) {
               const index = allCategories.findIndex((c) => c.id === selectedCategoryId);
               if (index !== -1) {
+                // Update existing category
                 allCategories[index].name = categoryName.trim();
+                syncUpdateCategory(selectedCategoryId, categoryName.trim())
+                  .then(() => syncRefreshCategories())
+                  .catch(() => notify("Failed to sync category update.", "error"));
+              } else {
+                // Create new category (local-first)
+                createCategory(categoryName.trim());
+                syncCreateCategory(categoryName.trim())
+                  .then(() => syncRefreshCategories())
+                  .catch(() => notify("Failed to create category.", "error"));
               }
+            } else {
+              syncRefreshCategories().catch(() => {});
             }
             onClose();
           }}

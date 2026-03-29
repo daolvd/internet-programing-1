@@ -4,14 +4,23 @@ import './index.css'
 import App from './App.tsx'
 import { initUserSession } from './services/CardReviewService'
 import { apiClient } from './services/ApiClient'
+import { initDeckData } from './services/DeckServices'
 
 initUserSession()
-void apiClient.initializeAuth().catch(() => {
-  // Defer hard failure handling to first API request.
-})
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+async function bootstrap() {
+  try {
+    await apiClient.initializeAuth()
+    await initDeckData()
+  } catch {
+    // App will render with empty arrays — user may see empty state
+  }
+
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}
+
+void bootstrap()

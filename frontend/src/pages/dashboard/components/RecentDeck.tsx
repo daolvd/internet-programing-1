@@ -1,11 +1,31 @@
+import { useEffect, useState } from "react";
+import { useNotification } from "../../../components/common/NotificationProvider";
 import { getRecentDecks } from "../../../services/DeckServices";
+import type { Deck } from "../../../types/Deck";
 import DeckItem from "./DeckItem";
- 
 
+export default function RecentCards({ refreshKey }: { refreshKey?: number } = {}) {
+  const [recentDecks, setRecentDecks] = useState<Deck[]>([]);
+  const { notify } = useNotification();
 
+  useEffect(() => {
+    let isMounted = true;
 
-export default function RecentCards() {
-  const recentDecks = getRecentDecks();
+    void getRecentDecks().then((data) => {
+      if (isMounted) {
+        setRecentDecks(data);
+      }
+    }).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : "Khong the tai recent decks";
+      if (isMounted) {
+        notify(message, "error");
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshKey, notify]);
 
   return (
     <div>

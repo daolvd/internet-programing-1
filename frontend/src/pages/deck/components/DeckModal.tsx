@@ -7,8 +7,8 @@ import { getNameOfDeck } from "../../../services/DeckServices";
 import { saveDeck } from "../../../services/DeckModalService";
 
 export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onClose: () => void; selectedCategoryId: number; deckId: number }) {
- 
-  const [title, setTitle] = useState({name :getNameOfDeck(deckId),id :deckId});
+
+  const [title, setTitle] = useState({ name: getNameOfDeck(deckId), id: deckId });
   const { cards } = useCards(title.id);
   const [draftCards, setDraftCards] = useState(cards);
 
@@ -81,13 +81,13 @@ export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onC
           </button>
 
           <button className="bg-blue-500 text-white px-4 py-2 rounded-lg"
-          onClick={() => {
-            saveDeck(draftCards, title.id, title.name, selectedCategoryId)
-            onClose();
-          }
-        }
+            onClick={() => {
+              saveDeck(draftCards, title.id, title.name, selectedCategoryId)
+              onClose();
+            }
+            }
           >
-       
+
             Save Deck
           </button>
         </div>
@@ -105,7 +105,7 @@ export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onC
 
           <input
             value={title.name}
-            onChange={(e) => setTitle({...title, name: e.target.value})}
+            onChange={(e) => setTitle({ ...title, name: e.target.value })}
             className="w-full mt-2 p-3 border rounded-lg bg-gray-50"
           />
         </div>
