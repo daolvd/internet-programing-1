@@ -2,6 +2,7 @@ import CategoryCard from "./CategoryCard";
 import { useCategories } from "../../../hook/CategoryHook";
 import { useNotification } from "../../../components/common/NotificationProvider";
 import { useConfirm } from "../../../components/common/ConfirmProvider";
+import { getCategoryById, getCategoryName } from "../../../services/DeckServices";
 
 
 interface Props {
@@ -16,9 +17,10 @@ export default function CategoryList({ selectedCategoryId, OnselectedCategoryId,
   const { categories, deleteCategory } = useCategories(categoryModalOpen || refreshTrigger);
   const { notify } = useNotification();
   const { confirm } = useConfirm();
-  
+
   const handleDeleteCategory = async (catId: number) => {
-    if (catId === 0) {
+    console.log(getCategoryById(catId))
+    if (getCategoryById(catId)?.name === "General") {
       notify("The General category cannot be deleted.", "warning");
       return;
     }

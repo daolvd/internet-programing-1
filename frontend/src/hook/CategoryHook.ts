@@ -8,6 +8,7 @@ export function useCategories(refreshTrigger?: unknown) {
   const { notify } = useNotification();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCategories([...allCategories]);
 
     // Listen for async updates (e.g. syncRefreshCategories completed)
@@ -42,7 +43,7 @@ export function useCategories(refreshTrigger?: unknown) {
           refreshCategories();
         }
       })
-      .catch(() => notify("Failed to sync category to server.", "error"));
+      .catch((err: any) => notify("Failed to sync category: " + (err?.message || "Unknown error"), "error"));
   }
 
   function deleteCategory(id: number): number {
@@ -61,7 +62,7 @@ export function useCategories(refreshTrigger?: unknown) {
 
       // Background sync
       syncDeleteCategory(id)
-        .catch(() => notify("Failed to sync delete to server.", "error"));
+        .catch((err: any) => notify("Failed to sync delete: " + (err?.message || "Unknown error"), "error"));
     }
 
     return nearestId;
@@ -75,7 +76,7 @@ export function useCategories(refreshTrigger?: unknown) {
 
       // Background sync
       syncUpdateCategory(id, name)
-        .catch(() => notify("Failed to sync update to server.", "error"));
+        .catch((err: any) => notify("Failed to sync update: " + (err?.message || "Unknown error"), "error"));
     } else {
       createCategory(id, name, decks, cards);
     }

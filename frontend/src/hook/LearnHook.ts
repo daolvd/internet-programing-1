@@ -26,6 +26,36 @@ interface UseLearnSessionOptions {
   }) => void;
 }
 
+const normalizeStatus = (status: string): string => status.trim().toLowerCase().replace(/\s+/g, "");
+
+const getStatusPriority = (status: string): number => {
+  const normalized = normalizeStatus(status);
+  if (normalized === normalizeStatus(LEARN_CARD_STATUS[LEARN_ACTION.DONT_KNOW])) {
+    return LEARN_ACTION_PRIORITY[LEARN_ACTION.DONT_KNOW];
+  }
+  if (normalized === normalizeStatus(LEARN_CARD_STATUS[LEARN_ACTION.HARD])) {
+    return LEARN_ACTION_PRIORITY[LEARN_ACTION.HARD];
+  }
+  if (normalized === normalizeStatus(LEARN_CARD_STATUS[LEARN_ACTION.GOOD])) {
+    return LEARN_ACTION_PRIORITY[LEARN_ACTION.GOOD];
+  }
+  if (normalized === normalizeStatus(LEARN_CARD_STATUS[LEARN_ACTION.EASY])) {
+    return LEARN_ACTION_PRIORITY[LEARN_ACTION.EASY];
+  }
+  return 4;
+};
+
+const sortCardsByPriority = (newCards: Card[]) => {
+  return [...newCards]
+    .map((card, originalIndex) => ({ card, originalIndex }))
+    .sort((a, b) => {
+      const priorityDiff = getStatusPriority(a.card.status) - getStatusPriority(b.card.status);
+      if (priorityDiff !== 0) return priorityDiff;
+      return a.originalIndex - b.originalIndex;
+    })
+    .map((entry) => entry.card);
+};
+
 export function useLearnSession({
   cards,
   notify,
@@ -42,20 +72,10 @@ export function useLearnSession({
   const [answerFeedback, setAnswerFeedback] = useState<AnswerFeedback | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const autoNextTimeoutRef = useRef<number | null>(null);
-  const startedAtRef = useRef<number>(Date.now());
-
-  const sortCardsByPriority = (newCards: Card[]) => {
-    return [...newCards]
-      .map((card, originalIndex) => ({ card, originalIndex }))
-      .sort((a, b) => {
-        const priorityDiff = getStatusPriority(a.card.status) - getStatusPriority(b.card.status);
-        if (priorityDiff !== 0) return priorityDiff;
-        return a.originalIndex - b.originalIndex;
-      })
-      .map(entry => entry.card);
-  };
+  const startedAtRef = useRef<number>(0);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLearnQueue(sortCardsByPriority(cards));
     setLearnIndex(0);
     setLearnAnswerInput("");
@@ -88,6 +108,7 @@ export function useLearnSession({
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowAnswer(false);
     setAnswerFeedback(null);
     startedAtRef.current = Date.now();
@@ -115,24 +136,7 @@ export function useLearnSession({
     setAnswerFeedback(null);
   };
 
-  const normalizeStatus = (status: string): string => status.trim().toLowerCase().replace(/\s+/g, "");
 
-  const getStatusPriority = (status: string): number => {
-    const normalized = normalizeStatus(status);
-    if (normalized === normalizeStatus(LEARN_CARD_STATUS[LEARN_ACTION.DONT_KNOW])) {
-      return LEARN_ACTION_PRIORITY[LEARN_ACTION.DONT_KNOW];
-    }
-    if (normalized === normalizeStatus(LEARN_CARD_STATUS[LEARN_ACTION.HARD])) {
-      return LEARN_ACTION_PRIORITY[LEARN_ACTION.HARD];
-    }
-    if (normalized === normalizeStatus(LEARN_CARD_STATUS[LEARN_ACTION.GOOD])) {
-      return LEARN_ACTION_PRIORITY[LEARN_ACTION.GOOD];
-    }
-    if (normalized === normalizeStatus(LEARN_CARD_STATUS[LEARN_ACTION.EASY])) {
-      return LEARN_ACTION_PRIORITY[LEARN_ACTION.EASY];
-    }
-    return 4;
-  };
 
   const applyLearnStatus = (action: LearnAction, shouldAdvance: boolean, targetCard: Card) => {
     const nextStatus = LEARN_CARD_STATUS[action];

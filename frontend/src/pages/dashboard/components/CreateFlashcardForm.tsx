@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { allCards, allCategories, allDecks, createCard, syncCreateCard } from "../../../services/DeckServices";
 import { useNotification } from "../../../components/common/NotificationProvider";
@@ -12,22 +12,19 @@ export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardForm
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(allCategories[0]?.id ?? 0);
-  const [selectedDeckId, setSelectedDeckId] = useState<number>(0);
+  const [selectedDeckId, setSelectedDeckId] = useState<number>(
+    allDecks.find(d => d.categoryId === (allCategories[0]?.id ?? 0))?.id ?? 0
+  );
 
   const decksInCategory = useMemo(
     () => allDecks.filter((deck) => deck.categoryId === selectedCategoryId),
     [selectedCategoryId]
   );
 
-  useEffect(() => {
-    const firstDeckId = decksInCategory[0]?.id ?? 0;
-    if (!decksInCategory.some((deck) => deck.id === selectedDeckId)) {
-      setSelectedDeckId(firstDeckId);
-    }
-  }, [decksInCategory, selectedDeckId]);
-
   const handleCategoryChange = (categoryId: number) => {
     setSelectedCategoryId(categoryId);
+    const decks = allDecks.filter((deck) => deck.categoryId === categoryId);
+    setSelectedDeckId(decks[0]?.id ?? 0);
   };
 
   const handleDeckChange = (deckId: number) => {

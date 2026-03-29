@@ -72,7 +72,7 @@ export default function StudyPage() {
   const [activeTab, setActiveTab] = useState<"quickview" | "learn">("quickview");
   const [learnQueueSize, setLearnQueueSize] = useState(cards.length);
   const [learnCurrent, setLearnCurrent] = useState(cards.length > 0 ? 1 : 0);
-  const [quickCardStartedAt, setQuickCardStartedAt] = useState(Date.now());
+  const [quickCardStartedAt, setQuickCardStartedAt] = useState(() => Date.now());
   const [quickCardRecorded, setQuickCardRecorded] = useState(false);
   const [isLearnSettingOpen, setIsLearnSettingOpen] = useState(false);
   const [learnShowAll, setLearnShowAll] = useState(true);
@@ -80,7 +80,7 @@ export default function StudyPage() {
   const [studyStartedAt, setStudyStartedAt] = useState<number | null>(null);
   const [studySessionSaved, setStudySessionSaved] = useState(false);
   const [completedSessionTime, setCompletedSessionTime] = useState<number | null>(null);
-  const [clockNow, setClockNow] = useState(Date.now());
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const [sessionReviews, setSessionReviews] = useState<CreateCardReviewInput[]>([]);
 
   const filteredLearnCards = useMemo(() => {
@@ -101,7 +101,7 @@ export default function StudyPage() {
     setStudySessionSaved(false);
     setCompletedSessionTime(null);
     setSessionReviews([]);
-  }, [resolvedDeckId, initialIndex]);
+  }, [resolvedDeckId, initialIndex, cards.length]);
 
   useEffect(() => {
     setLearnQueueSize(filteredLearnCards.length);
@@ -181,6 +181,7 @@ export default function StudyPage() {
         submitSessionToBackend(studyStartedAt, endTime, sessionReviews);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array -> cleanup only runs exactly on unmount
 
   const currentUserId = useMemo(() => getOrCreateUserId(), []);
@@ -190,6 +191,7 @@ export default function StudyPage() {
       .map((review) => review.reviewed_at);
 
     return getCurrentStreakDays(timestamps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, clockNow, quickCardRecorded, learnCurrent]);
 
   const sessionLabel = useMemo(() => {

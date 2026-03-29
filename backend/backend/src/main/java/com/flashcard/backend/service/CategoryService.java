@@ -56,6 +56,7 @@ public class CategoryService {
     public CategoryResponse update(UpdateCategoryRequest categoryRequest, Long userId) {
         Category category = categoryRepository.getCategoryByIdAndUser_Id(categoryRequest.getId(), userId);
         if (category == null) throw new RuntimeException("Category not found");
+        if (category.getName().equals("General")) throw new RuntimeException("Cannot update General category");
         category.setName(categoryRequest.getName());
         categoryRepository.save(category);
         return mapToResponse(category, userId);

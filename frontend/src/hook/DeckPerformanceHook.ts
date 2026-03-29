@@ -76,6 +76,7 @@ export function useAllDecksOptimistic(): DeckPerformanceItem[] {
         };
       })
       .sort((a, b) => b.lastActive - a.lastActive);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version]);
 }
 

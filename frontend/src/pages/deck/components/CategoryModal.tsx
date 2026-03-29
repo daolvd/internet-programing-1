@@ -1,5 +1,5 @@
 import { X, Folder } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Modal from "../../../components/modal/Modal";
 import { allDecks, allCategories, getDecksByCategory, syncUpdateDeck, syncUpdateCategory, getGeneralCategoryId, syncRefreshCategories, syncCreateCategory, createCategory } from "../../../services/DeckServices";
 import { useNotification } from "../../../components/common/NotificationProvider";
@@ -8,7 +8,7 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
   const { notify } = useNotification();
   const [showAddDeckList, setShowAddDeckList] = useState(false);
   const [originalCategories, setOriginalCategories] = useState<Record<number, number>>({});
-  const [version, setVersion] = useState(0);
+  const [, setVersion] = useState(0);
   const [categoryName, setCategoryName] = useState("");
 
   useEffect(() => {
@@ -18,12 +18,8 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
     }
   }, [selectedCategoryId]);
 
-  const decks = useMemo(
-    () => getDecksByCategory(selectedCategoryId),
-    [selectedCategoryId, version]
-  );
-
-  const availableDecks = useMemo(() => [...allDecks], [version]);
+  const decks = getDecksByCategory(selectedCategoryId);
+  const availableDecks = [...allDecks];
 
   const handleToggleDeck = (deckId: number, checked: boolean) => {
     const deck = allDecks.find((item) => item.id === deckId);
@@ -34,6 +30,7 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
         if (prev[deckId] !== undefined) return prev;
         return { ...prev, [deckId]: deck.categoryId };
       });
+      // eslint-disable-next-line react-hooks/immutability
       deck.categoryId = selectedCategoryId;
       // Background sync
       syncUpdateDeck(deckId, deck.name, selectedCategoryId)
@@ -50,7 +47,8 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
         .catch(() => notify("Failed to sync deck assignment.", "error"));
 
       setOriginalCategories((prev) => {
-        const { [deckId]: _, ...rest } = prev;
+        const rest = { ...prev };
+        delete rest[deckId];
         return rest;
       });
     }

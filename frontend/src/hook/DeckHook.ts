@@ -10,6 +10,7 @@ export function useDeck(categoryId: number, openModel: boolean) {
 
   useEffect(() => {
     const result = getDecksByCategory(categoryId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setData(result);
   }, [categoryId, openModel]);
 
@@ -19,7 +20,7 @@ export function useDeck(categoryId: number, openModel: boolean) {
 
     // Background sync
     syncDeleteDeck(id)
-      .catch(() => notify("Failed to sync delete to server.", "error"));
+      .catch((err: any) => notify("Failed to sync delete: " + (err?.message || "Unknown error"), "error"));
   };
 
   return {
@@ -37,12 +38,13 @@ export function useCards(deckId: number) {
   useEffect(() => {
     if (deckId <= 0) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetchCardsByDeck(deckId)
       .then((cards) => setData(cards))
-      .catch(() => notify("Failed to load cards.", "error"))
+      .catch((err: any) => notify("Failed to load cards: " + (err?.message || "Unknown error"), "error"))
       .finally(() => setLoading(false));
-  }, [deckId]);
+  }, [deckId, notify]);
 
   const deleteCard = (id: number) => {
     setData(prev => prev.filter(c => c.id !== id));
@@ -50,7 +52,7 @@ export function useCards(deckId: number) {
 
     // Background sync
     syncDeleteCard(id)
-      .catch(() => notify("Failed to sync delete to server.", "error"));
+      .catch((err: any) => notify("Failed to sync delete: " + (err?.message || "Unknown error"), "error"));
   };
 
   const addCard = (card: Card) => {
@@ -65,7 +67,7 @@ export function useCards(deckId: number) {
         if (idx !== -1) allCards[idx] = { ...allCards[idx], id: serverCard.id };
         setData((prev) => prev.map((c) => c.id === card.id ? { ...c, id: serverCard.id } : c));
       })
-      .catch(() => notify("Failed to sync card to server.", "error"));
+      .catch((err: any) => notify("Failed to sync card: " + (err?.message || "Unknown error"), "error"));
   };
 
   const updateCard = (id: number, question: string, answer: string) => {
@@ -82,7 +84,7 @@ export function useCards(deckId: number) {
     // Background sync
     if (existing) {
       syncUpdateCard(id, question, answer, existing.status, existing.deckId)
-        .catch(() => notify("Failed to sync update to server.", "error"));
+        .catch((err: any) => notify("Failed to sync update: " + (err?.message || "Unknown error"), "error"));
     }
   };
 
