@@ -166,6 +166,11 @@ public class MetricsService {
         return response;
     }
 
+    public List<DeckMetricResponse> getRecentDecks(Long userId) {
+        List<DeckMetricResponse> deckMetrics = getSummary(userId).getDeckMetrics();
+        return deckMetrics.stream().limit(6).toList();
+    }
+
     private String normalizeRating(String rating) {
         return rating == null ? "" : rating.trim().toLowerCase(Locale.ROOT);
     }

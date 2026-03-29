@@ -50,6 +50,25 @@ public class StudySessionService {
 		return mapToResponse(session);
 	}
 
+	public List<StudySessionResponse> createList(Long userId, List<StudySessionRequest> requests) {
+		User user = userRepository.getUserById(userId);
+		if (user == null) throw new RuntimeException("User not found");
+
+		List<StudySession> sessions = requests.stream().map(request -> {
+			Deck deck = deckRepository.getDeckByIdAndCategory_User_Id(request.getDeckId(), userId);
+			if (deck == null) throw new RuntimeException("Deck not found");
+
+			StudySession session = new StudySession();
+			session.setDeck(deck);
+			session.setUser(user);
+			session.setStartTime(toDate(request.getStartTime()));
+			session.setEndTime(toDate(request.getEndTime()));
+			return session;
+		}).toList();
+
+		return studySessionRepository.saveAll(sessions).stream().map(this::mapToResponse).toList();
+	}
+
 	public StudySessionResponse update(Long userId, StudySessionRequest request) {
 		StudySession session = studySessionRepository.getStudySessionByIdAndUser_Id(request.getId(), userId);
 		if (session == null) throw new RuntimeException("Study session not found");

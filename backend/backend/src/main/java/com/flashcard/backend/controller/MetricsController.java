@@ -1,12 +1,15 @@
 package com.flashcard.backend.controller;
 
 import com.flashcard.backend.common.ApiResponse;
+import com.flashcard.backend.dto.response.DeckMetricResponse;
 import com.flashcard.backend.dto.response.MetricsSummaryResponse;
 import com.flashcard.backend.service.MetricsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/metrics")
@@ -22,5 +25,12 @@ public class MetricsController extends BaseController {
         Long userId = getCurrentUserId();
         MetricsSummaryResponse response = metricsService.getSummary(userId);
         return ResponseEntity.ok(new ApiResponse<>(true, "metrics summary success", response));
+    }
+
+    @GetMapping("/recent-decks")
+    public ResponseEntity<ApiResponse<List<DeckMetricResponse>>> getRecentDecks() {
+        Long userId = getCurrentUserId();
+        List<DeckMetricResponse> response = metricsService.getRecentDecks(userId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "recent decks success", response));
     }
 }

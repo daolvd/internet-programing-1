@@ -36,6 +36,11 @@ public class SessionStudyController extends BaseController {
 		return ResponseEntity.ok(new ApiResponse<>(true, "create success", studySessionService.create(getCurrentUserId(), request)));
 	}
 
+	@PostMapping("/create-list")
+	public ResponseEntity<ApiResponse<?>> createList(@RequestBody List<StudySessionRequest> requests) {
+		return ResponseEntity.ok(new ApiResponse<>(true, "create list success", studySessionService.createList(getCurrentUserId(), requests)));
+	}
+
 	@PutMapping("/update")
 	public ResponseEntity<ApiResponse<?>> update(@RequestBody StudySessionRequest request) {
 		return ResponseEntity.ok(new ApiResponse<>(true, "update success", studySessionService.update(getCurrentUserId(), request)));
