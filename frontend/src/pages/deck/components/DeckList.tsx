@@ -3,10 +3,15 @@ import DeckItem from "./DeckItem";
 import CreateDeckCard from "./CreateDeckCard";
 import DeckModal from "./DeckModal";
 import { useDeck } from "../../../hook/DeckHook";
+import { getCategoryById, getGeneralCategoryId } from "../../../services/DeckServices";
 
 export default function DeckList( {selectedCategoryId, categoryModalOpen, onDeckChange} : {selectedCategoryId : number; categoryModalOpen?: boolean; onDeckChange?: () => void}) {
   const [openModal, setOpenModal] = useState(false);
-  const {decks, deleteDeck} = useDeck(selectedCategoryId, openModal || categoryModalOpen || false);
+  const effectiveCategoryId = selectedCategoryId > 0 && getCategoryById(selectedCategoryId)
+    ? selectedCategoryId
+    : getGeneralCategoryId();
+  const categoryName = getCategoryById(effectiveCategoryId)?.name ?? "Unknown Category";
+  const {decks, deleteDeck} = useDeck(effectiveCategoryId, openModal || categoryModalOpen || false);
   const [selectedEditDeck, setSelectedEditDeck] = useState<number>(0);
 
 
@@ -22,7 +27,7 @@ export default function DeckList( {selectedCategoryId, categoryModalOpen, onDeck
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <h2 className="font-semibold">
-          Decks in 'Languages'{" "}
+          Decks in '{categoryName}'{" "}
           <span className="text-gray-400">
             {decks.length} Total
           </span>
@@ -40,7 +45,7 @@ export default function DeckList( {selectedCategoryId, categoryModalOpen, onDeck
 
       {/* MODAL */}
       {openModal && (
-        <DeckModal deckId={selectedEditDeck} selectedCategoryId={selectedCategoryId} onClose={() => {
+        <DeckModal deckId={selectedEditDeck} selectedCategoryId={effectiveCategoryId} onClose={() => {
           setOpenModal(false);
           onDeckChange?.();
         }} />
@@ -60,7 +65,12 @@ export default function DeckList( {selectedCategoryId, categoryModalOpen, onDeck
           />
         ))}
 
-        <CreateDeckCard />
+      <button 
+      onClick={() =>{ setOpenModal(true)
+            setSelectedEditDeck(Date.now());
+          }}>
+        <CreateDeckCard/>
+         </button>
       </div>
 
     </div>
