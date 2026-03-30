@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import ProgressBar from "./components/ProgressBar";
@@ -6,12 +6,12 @@ import FlashcardViewer from "./components/FlashcardViewer";
 import StudyControls from "./components/StudyControls";
 import Modal from "../../components/modal/Modal";
 
-import { getCardsByDeck, getNameOfDeck, updateDeckLastActive } from "../../services/DeckServices";
+import { fetchCardsByDeck, getCardsByDeck, getNameOfDeck, updateDeckLastActive } from "../../services/DeckServices";
 import { LAST_REVIEW_DECK_KEY } from "../../constants/storageKeys";
 import { INITIAL_LEARN_FILTERS, type LearnFilterKey } from "../../constants/study";
 import LearnCardPanel from "./components/LearnCardPanel";
-import { createCardReview, getCardReviews, getOrCreateUserId } from "../../services/CardReviewService";
-import { createStudySession } from "../../services/StudySessionService";
+import { type CreateCardReviewInput, createCardReview, getCardReviews, getOrCreateUserId, syncCreateCardReviewList } from "../../services/CardReviewService";
+import { createStudySession, syncCreateStudySession } from "../../services/StudySessionService";
 import { findFallbackDeckId, formatSessionClock, getCurrentStreakDays, normalizeLearnStatus } from "../../utils/Utils";
 
 export default function StudyPage() {
@@ -31,14 +31,35 @@ export default function StudyPage() {
       ? storedDeckId
       : findFallbackDeckId();
 
-  const cards = useMemo(() => getCardsByDeck(resolvedDeckId), [resolvedDeckId]);
   const deckName = useMemo(() => getNameOfDeck(resolvedDeckId) || "Selected Deck", [resolvedDeckId]);
 
+  const [cards, setCards] = useState(() => getCardsByDeck(resolvedDeckId));
+  const [isLoadingCards, setIsLoadingCards] = useState(true);
+
   useEffect(() => {
+    let isMounted = true;
+    const localCards = getCardsByDeck(resolvedDeckId);
+    setCards(localCards);
+
     if (resolvedDeckId > 0) {
       localStorage.setItem(LAST_REVIEW_DECK_KEY, String(resolvedDeckId));
       updateDeckLastActive(resolvedDeckId);
+      setIsLoadingCards(true);
+
+      void fetchCardsByDeck(resolvedDeckId)
+        .then(fetchedCards => {
+          if (isMounted) setCards(fetchedCards);
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingCards(false);
+        });
+    } else {
+       setIsLoadingCards(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [resolvedDeckId]);
 
   const targetIndex = cardIdParam
@@ -51,7 +72,7 @@ export default function StudyPage() {
   const [activeTab, setActiveTab] = useState<"quickview" | "learn">("quickview");
   const [learnQueueSize, setLearnQueueSize] = useState(cards.length);
   const [learnCurrent, setLearnCurrent] = useState(cards.length > 0 ? 1 : 0);
-  const [quickCardStartedAt, setQuickCardStartedAt] = useState(Date.now());
+  const [quickCardStartedAt, setQuickCardStartedAt] = useState(() => Date.now());
   const [quickCardRecorded, setQuickCardRecorded] = useState(false);
   const [isLearnSettingOpen, setIsLearnSettingOpen] = useState(false);
   const [learnShowAll, setLearnShowAll] = useState(true);
@@ -59,7 +80,8 @@ export default function StudyPage() {
   const [studyStartedAt, setStudyStartedAt] = useState<number | null>(null);
   const [studySessionSaved, setStudySessionSaved] = useState(false);
   const [completedSessionTime, setCompletedSessionTime] = useState<number | null>(null);
-  const [clockNow, setClockNow] = useState(Date.now());
+  const [clockNow, setClockNow] = useState(() => Date.now());
+  const [sessionReviews, setSessionReviews] = useState<CreateCardReviewInput[]>([]);
 
   const filteredLearnCards = useMemo(() => {
     if (learnShowAll) return cards;
@@ -78,7 +100,8 @@ export default function StudyPage() {
     setStudyStartedAt(null);
     setStudySessionSaved(false);
     setCompletedSessionTime(null);
-  }, [resolvedDeckId, initialIndex]);
+    setSessionReviews([]);
+  }, [resolvedDeckId, initialIndex, cards.length]);
 
   useEffect(() => {
     setLearnQueueSize(filteredLearnCards.length);
@@ -100,15 +123,45 @@ export default function StudyPage() {
     };
   }, []);
 
+  const submitSessionToBackend = (startedAt: number, endedAt: number, reviews: CreateCardReviewInput[]) => {
+    if (reviews.length === 0) return;
+    syncCreateStudySession(startedAt, endedAt, resolvedDeckId)
+      .then((session) => {
+        syncCreateCardReviewList(reviews, session.id)
+          .catch((err) => console.error("Failed to sync reviews list", err));
+      })
+      .catch((err) => console.error("Failed to sync study session", err));
+  };
+
+  // Keep refs for latest values without triggering useEffect cleanup on every change
+  const sessionDataRef = useRef({
+    studyStartedAt,
+    studySessionSaved,
+    sessionReviews,
+    resolvedDeckId
+  });
+
+  useEffect(() => {
+    sessionDataRef.current = {
+      studyStartedAt,
+      studySessionSaved,
+      sessionReviews,
+      resolvedDeckId
+    };
+  }, [studyStartedAt, studySessionSaved, sessionReviews, resolvedDeckId]);
+
   // Save incomplete session when leaving page
   useEffect(() => {
     const handleBeforeUnload = () => {
+      const { studyStartedAt, studySessionSaved, sessionReviews } = sessionDataRef.current;
       if (studyStartedAt !== null && !studySessionSaved) {
+        const endTime = Date.now();
         createStudySession({
           user_id: getOrCreateUserId(),
           started_at: studyStartedAt,
-          ended_at: Date.now(),
+          ended_at: endTime,
         });
+        submitSessionToBackend(studyStartedAt, endTime, sessionReviews);
       }
     };
 
@@ -117,15 +170,19 @@ export default function StudyPage() {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       // Also save on component unmount (e.g., when navigating away)
+      const { studyStartedAt, studySessionSaved, sessionReviews } = sessionDataRef.current;
       if (studyStartedAt !== null && !studySessionSaved) {
+        const endTime = Date.now();
         createStudySession({
           user_id: getOrCreateUserId(),
           started_at: studyStartedAt,
-          ended_at: Date.now(),
+          ended_at: endTime,
         });
+        submitSessionToBackend(studyStartedAt, endTime, sessionReviews);
       }
     };
-  }, [studyStartedAt, studySessionSaved]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array -> cleanup only runs exactly on unmount
 
   const currentUserId = useMemo(() => getOrCreateUserId(), []);
   const streakDays = useMemo(() => {
@@ -134,6 +191,7 @@ export default function StudyPage() {
       .map((review) => review.reviewed_at);
 
     return getCurrentStreakDays(timestamps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, clockNow, quickCardRecorded, learnCurrent]);
 
   const sessionLabel = useMemo(() => {
@@ -148,6 +206,14 @@ export default function StudyPage() {
     const elapsedSeconds = Math.floor((clockNow - studyStartedAt) / 1000);
     return formatSessionClock(elapsedSeconds);
   }, [clockNow, studyStartedAt, completedSessionTime]);
+
+  if (isLoadingCards && cards.length === 0) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (cards.length === 0) {
     return (
@@ -171,23 +237,27 @@ export default function StudyPage() {
   };
 
   const revealQuickviewAnswer = () => {
+    // Start session timing on first meaningful interaction in quickview mode.
     const startedAt = studyStartedAt ?? Date.now();
     if (studyStartedAt === null) {
       setStudyStartedAt(startedAt);
     }
 
     setShow(true);
+    // Only record one review per card reveal cycle.
     if (quickCardRecorded) {
       return;
     }
 
-    createCardReview({
+    const newReview: CreateCardReviewInput = {
       card_id: current.id,
       deck_id: current.deckId,
       is_correct: true,
       rating: "good",
       response_time_ms: Date.now() - quickCardStartedAt,
-    });
+    };
+    createCardReview(newReview);
+    setSessionReviews((prev) => [...prev, newReview]);
     setQuickCardRecorded(true);
   };
 
@@ -212,6 +282,7 @@ export default function StudyPage() {
       ended_at: endTime,
     });
     setStudySessionSaved(true);
+    submitSessionToBackend(studyStartedAt, endTime, sessionReviews);
   };
 
   const handleToggleAllFilters = (checked: boolean) => {
@@ -241,18 +312,16 @@ export default function StudyPage() {
             <button
               type="button"
               onClick={() => setActiveTab("quickview")}
-              className={`px-4 py-1.5 text-sm rounded-md ${
-                activeTab === "quickview" ? "bg-blue-500 text-white" : "text-gray-600"
-              }`}
+              className={`px-4 py-1.5 text-sm rounded-md ${activeTab === "quickview" ? "bg-blue-500 text-white" : "text-gray-600"
+                }`}
             >
               Quickview
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("learn")}
-              className={`px-4 py-1.5 text-sm rounded-md ${
-                activeTab === "learn" ? "bg-blue-500 text-white" : "text-gray-600"
-              }`}
+              className={`px-4 py-1.5 text-sm rounded-md ${activeTab === "learn" ? "bg-blue-500 text-white" : "text-gray-600"
+                }`}
             >
               Learn
             </button>
@@ -294,7 +363,15 @@ export default function StudyPage() {
                 startStudySessionIfNeeded();
                 next();
               }}
-              onReveal={revealQuickviewAnswer}
+              onReveal={() => {
+                // Button acts as a toggle; review is only recorded when revealing.
+                if (show) {
+                  setShow(false);
+                  return;
+                }
+                revealQuickviewAnswer();
+              }}
+              isRevealed={show}
             />
           </div>
         </>
@@ -304,13 +381,15 @@ export default function StudyPage() {
           onQueueSizeChange={setLearnQueueSize}
           onReview={(review) => {
             startStudySessionIfNeeded();
-            createCardReview({
+            const newReview: CreateCardReviewInput = {
               card_id: review.cardId,
               deck_id: review.deckId,
               is_correct: review.isCorrect,
               rating: review.rating,
               response_time_ms: review.responseTimeMs,
-            });
+            };
+            createCardReview(newReview);
+            setSessionReviews((prev) => [...prev, newReview]);
           }}
           onProgressChange={(current, total) => {
             setLearnCurrent(current);

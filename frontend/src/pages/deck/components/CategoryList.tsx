@@ -2,21 +2,25 @@ import CategoryCard from "./CategoryCard";
 import { useCategories } from "../../../hook/CategoryHook";
 import { useNotification } from "../../../components/common/NotificationProvider";
 import { useConfirm } from "../../../components/common/ConfirmProvider";
+import { getCategoryById } from "../../../services/DeckServices";
 
 
 interface Props {
   selectedCategoryId: number;
   OnselectedCategoryId: (id: number) => void;
   onEditCategory: (id: number) => void;
+  categoryModalOpen?: boolean;
+  refreshTrigger?: number;
 }
 
-export default function CategoryList({ selectedCategoryId ,OnselectedCategoryId, onEditCategory}: Props) {
-  const { categories, deleteCategory } = useCategories();
+export default function CategoryList({ selectedCategoryId, OnselectedCategoryId, onEditCategory, categoryModalOpen, refreshTrigger }: Props) {
+  const { categories, deleteCategory } = useCategories(categoryModalOpen || refreshTrigger);
   const { notify } = useNotification();
   const { confirm } = useConfirm();
-  
+
   const handleDeleteCategory = async (catId: number) => {
-    if (catId === 0) {
+    console.log(getCategoryById(catId))
+    if (getCategoryById(catId)?.name === "General") {
       notify("The General category cannot be deleted.", "warning");
       return;
     }

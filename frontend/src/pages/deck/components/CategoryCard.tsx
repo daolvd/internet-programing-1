@@ -71,7 +71,7 @@ export default function CategoryCard({ category , onClick, onEdit, onDelete }:Ca
       </div>
 
       <p className="text-xs text-gray-400 mt-1">
-        {category.proficiency}% Overall Proficiency
+        {Number(category.proficiency || 0).toFixed(2)}% Overall Proficiency
       </p>
 
     </div>

@@ -9,7 +9,9 @@ import com.flashcard.backend.repository.CardRepository;
 import com.flashcard.backend.repository.CardReviewRepository;
 import com.flashcard.backend.repository.StudySessionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -34,22 +36,20 @@ public class CardReviewService {
 	}
 
 	public CardReviewResponse create(Long userId, CardReviewRequest request) {
-		Card card = cardRepository.getCardByIdAndDeck_Category_User_Id(request.getCardId(), userId);
-		if (card == null) throw new RuntimeException("Card not found");
-
-		StudySession session = studySessionRepository.getStudySessionByIdAndUser_Id(request.getStudySessionId(), userId);
-		if (session == null) throw new RuntimeException("Study session not found");
-
-		CardReview review = new CardReview();
-		review.setCorrect(Boolean.TRUE.equals(request.getIsCorrect()));
-		review.setRating(request.getRating());
-		review.setReviewAt(request.getReviewAt());
-		review.setResponseTimeMs(request.getResponseTimeMs());
-		review.setCard(card);
-		review.setStudySession(session);
+		CardReview review = buildReviewEntity(userId, request);
 		cardReviewRepository.save(review);
 
 		return mapToResponse(review);
+	}
+
+	@Transactional
+	public List<CardReviewResponse> createList(Long userId, List<CardReviewRequest> requests) {
+		List<CardReview> reviews = new ArrayList<>();
+		for (CardReviewRequest request : requests) {
+			reviews.add(buildReviewEntity(userId, request));
+		}
+
+		return cardReviewRepository.saveAll(reviews).stream().map(this::mapToResponse).toList();
 	}
 
 	public CardReviewResponse update(Long userId, CardReviewRequest request) {
@@ -85,6 +85,23 @@ public class CardReviewService {
 
 		cardReviewRepository.delete(review);
 		return null;
+	}
+
+	private CardReview buildReviewEntity(Long userId, CardReviewRequest request) {
+		Card card = cardRepository.getCardByIdAndDeck_Category_User_Id(request.getCardId(), userId);
+		if (card == null) throw new RuntimeException("Card not found");
+
+		StudySession session = studySessionRepository.getStudySessionByIdAndUser_Id(request.getStudySessionId(), userId);
+		if (session == null) throw new RuntimeException("Study session not found");
+
+		CardReview review = new CardReview();
+		review.setCorrect(Boolean.TRUE.equals(request.getIsCorrect()));
+		review.setRating(request.getRating());
+		review.setReviewAt(request.getReviewAt());
+		review.setResponseTimeMs(request.getResponseTimeMs());
+		review.setCard(card);
+		review.setStudySession(session);
+		return review;
 	}
 
 	private CardReviewResponse mapToResponse(CardReview review) {

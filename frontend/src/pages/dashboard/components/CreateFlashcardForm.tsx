@@ -1,29 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
-import { allCards, allCategories, allDecks, createCard } from "../../../services/DeckServices";
+import { allCards, allCategories, allDecks, createCard, syncCreateCard } from "../../../services/DeckServices";
 import { useNotification } from "../../../components/common/NotificationProvider";
 
-export default function CreateFlashcardForm() {
+interface CreateFlashcardFormProps {
+  onCardAdded?: () => void;
+}
+
+export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardFormProps = {}) {
   const { notify } = useNotification();
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(allCategories[0]?.id ?? 0);
-  const [selectedDeckId, setSelectedDeckId] = useState<number>(0);
+  const [selectedDeckId, setSelectedDeckId] = useState<number>(
+    allDecks.find(d => d.categoryId === (allCategories[0]?.id ?? 0))?.id ?? 0
+  );
 
   const decksInCategory = useMemo(
     () => allDecks.filter((deck) => deck.categoryId === selectedCategoryId),
     [selectedCategoryId]
   );
 
-  useEffect(() => {
-    const firstDeckId = decksInCategory[0]?.id ?? 0;
-    if (!decksInCategory.some((deck) => deck.id === selectedDeckId)) {
-      setSelectedDeckId(firstDeckId);
-    }
-  }, [decksInCategory, selectedDeckId]);
-
   const handleCategoryChange = (categoryId: number) => {
     setSelectedCategoryId(categoryId);
+    const decks = allDecks.filter((deck) => deck.categoryId === categoryId);
+    setSelectedDeckId(decks[0]?.id ?? 0);
   };
 
   const handleDeckChange = (deckId: number) => {
@@ -62,9 +63,18 @@ export default function CreateFlashcardForm() {
       status: "Don't know",
     });
 
+    // Sync to server
+    syncCreateCard(trimmedQuestion, trimmedAnswer, "Don't know", selectedDeckId)
+      .then((serverCard) => {
+        const idx = allCards.findIndex((c) => c.id === newCardId);
+        if (idx !== -1) allCards[idx] = { ...allCards[idx], id: serverCard.id };
+        onCardAdded?.();
+      })
+      .catch((err) => notify("Failed to sync card: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
+
     const deckIndex = allDecks.findIndex((deck) => deck.id === selectedDeckId);
     if (deckIndex !== -1) {
-     allDecks[deckIndex].cards = allDecks[deckIndex].cards + 1;
+      allDecks[deckIndex].cards = allDecks[deckIndex].cards + 1;
     }
 
     setQuestion("");

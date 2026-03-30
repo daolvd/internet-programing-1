@@ -13,9 +13,8 @@ export default function FlashcardViewer({ card, show, onFlip }: { card: Card; sh
       className="w-full h-[300px] perspective"
     >
       <div
-        className={`relative w-full h-full transition-transform duration-500 transform-style preserve-3d ${
-          show ? "rotate-y-180" : ""
-        }`}
+        className={`relative w-full h-full transition-transform duration-500 transform-style preserve-3d ${show ? "rotate-y-180" : ""
+          }`}
       >
 
         {/* FRONT */}

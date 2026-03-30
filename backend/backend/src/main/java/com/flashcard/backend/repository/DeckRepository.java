@@ -16,5 +16,7 @@ public interface DeckRepository extends JpaRepository<Deck, Long> {
     @Query("SELECT d FROM Deck d JOIN d.category c WHERE c.user.id = :userId")
     List<Deck> findAllByUserId(@Param("userId") Long userId);
 
+    long countByCategory_IdAndCategory_User_Id(Long categoryId, Long userId);
+
     Deck getDeckByIdAndCategory_User_Id(Long id, Long categoryUserId);
 }
