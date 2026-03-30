@@ -1,3 +1,4 @@
+import { getGeneralCategoryId } from "../../../services/DeckServices";
 import type { Category } from "../../../types/Category";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -15,7 +16,7 @@ export default function CategoryCard({ category , onClick, onEdit, onDelete }:Ca
     event.stopPropagation();
     onEdit();
   };
-
+  const getneralId = getGeneralCategoryId();
   const handleDeleteClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     onDelete();
@@ -34,7 +35,7 @@ export default function CategoryCard({ category , onClick, onEdit, onDelete }:Ca
               ACTIVE
             </span>
           )}
-          {category.id !== 0 && (
+          {category.id !== getneralId && (
             <>
               <button
                 type="button"

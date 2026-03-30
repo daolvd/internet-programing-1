@@ -2,11 +2,12 @@ import CategoryList from "./components/CategoryList";
 import DeckList from "./components/DeckList";
 import CategoryModal from "./components/CategoryModal";
 import { useState } from "react";
+import { getGeneralCategoryId } from "../../services/DeckServices";
 
 
 export default function DeckPage() {
     const [openCreateCategory, createCategory] = useState(false);
-    const [selectedCategoryId, setSelectedCategoryId] = useState<number>(1);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number>(getGeneralCategoryId());
     const [deckUpdateCounter, setDeckUpdateCounter] = useState(0);
 
   return (

@@ -1,24 +1,37 @@
 import { X, Folder } from "lucide-react";
 import { useState, useEffect } from "react";
 import Modal from "../../../components/modal/Modal";
-import { allDecks, allCategories, getDecksByCategory, syncUpdateDeck, syncUpdateCategory, getGeneralCategoryId, syncRefreshCategories, syncCreateCategory, createCategory } from "../../../services/DeckServices";
+import { allDecks, allCategories, getGeneralCategoryId } from "../../../services/DeckServices";
 import { useNotification } from "../../../components/common/NotificationProvider";
+import { saveCategoryChanges } from "../../../services/CategoryModalService";
 
 export default function CategoryModal({ onClose, selectedCategoryId }: { onClose: () => void; selectedCategoryId: number }) {
   const { notify } = useNotification();
   const [showAddDeckList, setShowAddDeckList] = useState(false);
   const [originalCategories, setOriginalCategories] = useState<Record<number, number>>({});
-  const [, setVersion] = useState(0);
   const [categoryName, setCategoryName] = useState("");
+  const [initialDeckCategoryById, setInitialDeckCategoryById] = useState<Record<number, number>>({});
+  const [draftDeckCategoryById, setDraftDeckCategoryById] = useState<Record<number, number>>({});
 
   useEffect(() => {
     const category = allCategories.find((c) => c.id === selectedCategoryId);
     if (category) {
       setCategoryName(category.name);
+    } else {
+      setCategoryName("");
     }
+
+    const categoryMap: Record<number, number> = {};
+    allDecks.forEach((deck) => {
+      categoryMap[deck.id] = deck.categoryId;
+    });
+
+    setInitialDeckCategoryById(categoryMap);
+    setDraftDeckCategoryById(categoryMap);
+    setOriginalCategories({});
   }, [selectedCategoryId]);
 
-  const decks = getDecksByCategory(selectedCategoryId);
+  const decks = allDecks.filter((deck) => draftDeckCategoryById[deck.id] === selectedCategoryId);
   const availableDecks = [...allDecks];
 
   const handleToggleDeck = (deckId: number, checked: boolean) => {
@@ -28,23 +41,22 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
     if (checked) {
       setOriginalCategories((prev) => {
         if (prev[deckId] !== undefined) return prev;
-        return { ...prev, [deckId]: deck.categoryId };
+        return { ...prev, [deckId]: draftDeckCategoryById[deckId] ?? deck.categoryId };
       });
-      // eslint-disable-next-line react-hooks/immutability
-      deck.categoryId = selectedCategoryId;
-      // Background sync
-      syncUpdateDeck(deckId, deck.name, selectedCategoryId)
-        .catch((err) => notify("Failed to sync deck assignment: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
+      setDraftDeckCategoryById((prev) => ({
+        ...prev,
+        [deckId]: selectedCategoryId,
+      }));
     } else {
       const originalCategoryId = originalCategories[deckId];
       const targetCategoryId = (originalCategoryId !== undefined && originalCategoryId !== selectedCategoryId)
         ? originalCategoryId
         : getGeneralCategoryId();
 
-      deck.categoryId = targetCategoryId;
-      // Background sync
-      syncUpdateDeck(deckId, deck.name, targetCategoryId)
-        .catch((err) => notify("Failed to sync deck assignment: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
+      setDraftDeckCategoryById((prev) => ({
+        ...prev,
+        [deckId]: targetCategoryId,
+      }));
 
       setOriginalCategories((prev) => {
         const rest = { ...prev };
@@ -52,8 +64,6 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
         return rest;
       });
     }
-
-    setVersion((prev) => prev + 1);
   };
 
   return (
@@ -115,7 +125,7 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
                   >
                     <input
                       type="checkbox"
-                      checked={deck.categoryId === selectedCategoryId}
+                      checked={draftDeckCategoryById[deck.id] === selectedCategoryId}
                       onChange={(event) => handleToggleDeck(deck.id, event.target.checked)}
                       className="cursor-pointer"
                     />
@@ -178,26 +188,19 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
 
         <button
           type="button"
-          onClick={() => {
-            if (categoryName.trim()) {
-              const index = allCategories.findIndex((c) => c.id === selectedCategoryId);
-              if (index !== -1) {
-                // Update existing category
-                allCategories[index].name = categoryName.trim();
-                syncUpdateCategory(selectedCategoryId, categoryName.trim())
-                  .then(() => syncRefreshCategories())
-                  .catch((err) => notify("Failed to sync category update: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
-              } else {
-                // Create new category (local-first)
-                createCategory(categoryName.trim());
-                syncCreateCategory(categoryName.trim())
-                  .then(() => syncRefreshCategories())
-                  .catch((err) => notify("Failed to create category: " + (err instanceof Error ? err.message : "Unknown error"), "error"));
-              }
-            } else {
-              syncRefreshCategories().catch(() => {});
+          onClick={async () => {
+            try {
+              await saveCategoryChanges({
+                selectedCategoryId,
+                categoryName,
+                draftDeckCategoryById,
+                initialDeckCategoryById,
+              });
+            } catch (err) {
+              notify("Failed to save category changes: " + (err instanceof Error ? err.message : "Unknown error"), "error");
+            } finally {
+              onClose();
             }
-            onClose();
           }}
           className="px-5 py-2 bg-blue-500 text-white rounded-lg"
         >
