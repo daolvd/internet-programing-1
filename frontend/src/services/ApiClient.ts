@@ -1,0 +1,236 @@
+import { AUTH_TOKEN_KEY, CLIENT_SEED_KEY, USER_ID_KEY } from "../constants/storageKeys";
+
+type QueryValue = string | number | boolean | null | undefined;
+type QueryParams = Record<string, QueryValue>;
+
+export interface ApiEnvelope<T> {
+	success: boolean;
+	message: string;
+	data: T;
+}
+
+interface AuthResponse {
+	token: string;
+}
+
+export class ApiError extends Error {
+	status: number;
+	payload?: unknown;
+
+	constructor(message: string, status: number, payload?: unknown) {
+		super(message);
+		this.name = "ApiError";
+		this.status = status;
+		this.payload = payload;
+	}
+}
+
+class ApiClient {
+	private readonly baseUrl: string;
+	private authPromise: Promise<void> | null = null;
+
+	constructor(baseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080") {
+		this.baseUrl = baseUrl.replace(/\/$/, "");
+	}
+
+	async get<T>(path: string, params?: QueryParams): Promise<T> {
+		const requestPath = this.buildPath(path, params);
+		return this.request<T>(requestPath, { method: "GET" });
+	}
+
+	async post<T>(path: string, body?: unknown): Promise<T> {
+		return this.request<T>(path, {
+			method: "POST",
+			body: body === undefined ? undefined : JSON.stringify(body),
+		});
+	}
+
+	async put<T>(path: string, body?: unknown): Promise<T> {
+		return this.request<T>(path, {
+			method: "PUT",
+			body: body === undefined ? undefined : JSON.stringify(body),
+		});
+	}
+
+	async delete<T>(path: string, params?: QueryParams): Promise<T> {
+		const requestPath = this.buildPath(path, params);
+		return this.request<T>(requestPath, { method: "DELETE" });
+	}
+
+	async request<T>(path: string, init: RequestInit, canRetry = true): Promise<T> {
+		await this.ensureAuthenticated();
+
+		const response = await fetch(`${this.baseUrl}${path}`, {
+			...init,
+			headers: this.buildHeaders(init.headers, this.getToken(), init.body),
+		});
+
+		if (response.status === 401 && canRetry) {
+			this.clearAuth();
+			return this.request<T>(path, init, false);
+		}
+
+		const payload = await this.parseJson(response);
+
+		if (!response.ok) {
+			const message =
+				this.pickErrorMessage(payload) ||
+				`Request failed with status ${response.status}`;
+			throw new ApiError(message, response.status, payload);
+		}
+
+		const envelope = payload as ApiEnvelope<T>;
+		return envelope.data;
+	}
+
+	initializeAuth(): Promise<void> {
+		return this.ensureAuthenticated();
+	}
+
+	setToken(token: string): void {
+		if (typeof window === "undefined") return;
+		window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+
+		const userId = this.parseJwtSubject(token);
+		if (userId) {
+			window.localStorage.setItem(USER_ID_KEY, userId);
+		}
+	}
+
+	clearAuth(): void {
+		if (typeof window === "undefined") return;
+		window.localStorage.removeItem(AUTH_TOKEN_KEY);
+	}
+
+	private async ensureAuthenticated(): Promise<void> {
+		if (typeof window === "undefined") return;
+		if (this.getToken()) return;
+
+		if (!this.authPromise) {
+			this.authPromise = this.authenticate().finally(() => {
+				this.authPromise = null;
+			});
+		}
+
+		await this.authPromise;
+	}
+
+	private async authenticate(): Promise<void> {
+		const existingClientSeed = this.getClientSeed();
+
+		if (existingClientSeed) {
+			const loginResult = await fetch(`${this.baseUrl}/api/users/login`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ clientSeed: existingClientSeed }),
+			});
+
+			if (loginResult.ok) {
+				const loginPayload = (await this.parseJson(loginResult)) as ApiEnvelope<AuthResponse>;
+				this.setToken(loginPayload.data.token);
+				return;
+			}
+		}
+
+		const newClientSeed = this.generateAndPersistClientSeed();
+
+		const registerResult = await fetch(`${this.baseUrl}/api/users/register`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ clientSeed: newClientSeed }),
+		});
+
+		if (!registerResult.ok) {
+			throw new ApiError("Unable to authenticate user with backend.", registerResult.status);
+		}
+
+		const registerPayload = (await this.parseJson(registerResult)) as ApiEnvelope<AuthResponse>;
+		this.setToken(registerPayload.data.token);
+	}
+
+	private buildPath(path: string, params?: QueryParams): string {
+		if (!params || Object.keys(params).length === 0) {
+			return path;
+		}
+
+		const search = new URLSearchParams();
+		Object.entries(params).forEach(([key, value]) => {
+			if (value === null || value === undefined) return;
+			search.append(key, String(value));
+		});
+
+		const query = search.toString();
+		return query ? `${path}?${query}` : path;
+	}
+
+	private buildHeaders(headers: HeadersInit | undefined, token: string, body: BodyInit | null | undefined): Headers {
+		const merged = new Headers(headers);
+
+		if (!(body instanceof FormData) && !merged.has("Content-Type")) {
+			merged.set("Content-Type", "application/json");
+		}
+
+		if (token) {
+			merged.set("Authorization", `Bearer ${token}`);
+		}
+
+		return merged;
+	}
+
+	private getToken(): string {
+		if (typeof window === "undefined") return "";
+		return window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
+	}
+
+	private getClientSeed(): string | null {
+		if (typeof window === "undefined") return "";
+		return window.localStorage.getItem(CLIENT_SEED_KEY);
+	}
+
+	private generateAndPersistClientSeed(): string {
+		if (typeof window === "undefined") return "";
+		const generated =
+			typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+				? crypto.randomUUID()
+				: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+		window.localStorage.setItem(CLIENT_SEED_KEY, generated);
+		return generated;
+	}
+
+	private parseJwtSubject(token: string): string | null {
+		const parts = token.split(".");
+		if (parts.length < 2 || typeof window === "undefined") return null;
+
+		try {
+			const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+			const payload = JSON.parse(window.atob(normalized)) as { sub?: unknown };
+			return typeof payload.sub === "string" ? payload.sub : null;
+		} catch {
+			return null;
+		}
+	}
+
+	private pickErrorMessage(payload: unknown): string | null {
+		if (!payload || typeof payload !== "object") return null;
+
+		const record = payload as Record<string, unknown>;
+		if (typeof record.message === "string") return record.message;
+		if (typeof record.error === "string") return record.error;
+		return null;
+	}
+
+	private async parseJson(response: Response): Promise<unknown> {
+		const text = await response.text();
+		if (!text) return null;
+
+		try {
+			return JSON.parse(text) as unknown;
+		} catch {
+			return text;
+		}
+	}
+}
+
+export const apiClient = new ApiClient();
+
