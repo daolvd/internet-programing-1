@@ -46,6 +46,7 @@ export default function LearnCardPanel({ cards, onQueueSizeChange, onProgressCha
   );
 
   const handleNextClick = () => {
+    // Keep keyboard and button behavior consistent: typed answer uses Enter flow.
     if (learnAnswerInput.trim()) {
       handleAnswerEnter();
       return;

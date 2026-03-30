@@ -237,12 +237,14 @@ export default function StudyPage() {
   };
 
   const revealQuickviewAnswer = () => {
+    // Start session timing on first meaningful interaction in quickview mode.
     const startedAt = studyStartedAt ?? Date.now();
     if (studyStartedAt === null) {
       setStudyStartedAt(startedAt);
     }
 
     setShow(true);
+    // Only record one review per card reveal cycle.
     if (quickCardRecorded) {
       return;
     }
@@ -362,6 +364,7 @@ export default function StudyPage() {
                 next();
               }}
               onReveal={() => {
+                // Button acts as a toggle; review is only recorded when revealing.
                 if (show) {
                   setShow(false);
                   return;

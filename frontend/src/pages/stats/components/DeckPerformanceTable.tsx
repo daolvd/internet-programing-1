@@ -17,6 +17,7 @@ function AllDecksModal({
   openDeck: (id: number) => void;
   deckMetrics: DeckMetricResponse[];
 }) {
+  // Full deck list is rendered in the modal; enable scroll only for long lists.
   const shouldScroll = deckMetrics.length > 9;
 
   return (
@@ -52,6 +53,7 @@ function AllDecksModal({
 }
 
 export default function DeckPerformanceTable({ deckMetrics }: DeckPerformanceTableProps) {
+  // Keep dashboard compact by showing only the most recent 4 decks in the table.
   const topRecent = deckMetrics.slice(0, 4);
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
