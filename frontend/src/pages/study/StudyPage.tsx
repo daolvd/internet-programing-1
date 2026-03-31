@@ -460,7 +460,7 @@ export default function StudyPage() {
             <button
               type="button"
               onClick={() => setIsLearnSettingOpen(false)}
-              className="px-4 py-2 rounded-lg bg-blue-500 text-white"
+              className="rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors duration-150 hover:bg-blue-600 active:bg-blue-700"
             >
               Apply
             </button>

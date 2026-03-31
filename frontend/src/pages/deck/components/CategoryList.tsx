@@ -19,7 +19,6 @@ export default function CategoryList({ selectedCategoryId, OnselectedCategoryId,
   const { confirm } = useConfirm();
 
   const handleDeleteCategory = async (catId: number) => {
-    console.log(getCategoryById(catId))
     if (getCategoryById(catId)?.name === "General") {
       notify("The General category cannot be deleted.", "warning");
       return;

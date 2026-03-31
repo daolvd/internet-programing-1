@@ -9,16 +9,14 @@ const navItems = [
 
 export default function Navigation() {
   return (
-    <nav className="flex gap-6 text-sm font-medium">
+    <nav className="flex flex-col gap-3 text-sm font-medium lg:flex-row lg:gap-6">
       {navItems.map((item) => (
         <NavLink
           key={item.label}
           to={item.path}
           className={({ isActive }) =>
-            `relative pb-1 ${
-              isActive
-                ? "text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
+            `relative rounded-md pb-1 transition ${
+              isActive ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
             }`
           }
         >
@@ -26,7 +24,7 @@ export default function Navigation() {
             <>
               {item.label}
               {isActive && (
-                <span className="absolute left-0 bottom-0 w-full h-[2px] bg-blue-600"></span>
+                <span className="absolute left-0 bottom-0 h-[2px] w-full bg-blue-600" />
               )}
             </>
           )}

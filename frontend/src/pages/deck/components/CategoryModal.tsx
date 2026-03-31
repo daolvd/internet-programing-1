@@ -1,5 +1,5 @@
+import { useEffect, useState } from "react";
 import { X, Folder } from "lucide-react";
-import { useState, useEffect } from "react";
 import Modal from "../../../components/modal/Modal";
 import { allDecks, allCategories, getGeneralCategoryId } from "../../../services/DeckServices";
 import { useNotification } from "../../../components/common/NotificationProvider";
@@ -68,23 +68,22 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
 
   return (
     <Modal onClose={onClose}>
-
-      {/* HEADER */}
-      <div className="flex justify-between items-center p-5 border-b">
-        <div className="flex items-center gap-2 font-semibold text-lg">
-          <Folder className="w-5 h-5 text-blue-500" />
+      <div className="flex items-center justify-between border-b p-5">
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <Folder className="h-5 w-5 text-blue-500" />
           Edit Category
         </div>
 
-        <button onClick={onClose}>
-          <X className="w-5 h-5 text-gray-500" />
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg p-2 transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200"
+        >
+          <X className="h-5 w-5 text-gray-500" />
         </button>
       </div>
 
-      {/* BODY */}
-      <div className="p-5 space-y-6">
-
-        {/* CATEGORY NAME */}
+      <div className="max-h-[70vh] space-y-6 overflow-y-auto p-5">
         <div>
           <label className="text-sm font-medium text-gray-500">
             CATEGORY NAME
@@ -95,13 +94,12 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
             value={categoryName}
             onChange={(e) => setCategoryName(e.target.value)}
             readOnly={selectedCategoryId === 0}
-            className={`w-full mt-2 p-3 border rounded-lg bg-gray-50 ${selectedCategoryId === 0 ? "cursor-not-allowed opacity-60" : ""}`}
+            className={`mt-2 w-full rounded-lg border bg-gray-50 p-3 ${selectedCategoryId === 0 ? "cursor-not-allowed opacity-60" : ""}`}
           />
         </div>
 
-        {/* DECK LIST */}
         <div>
-          <div className="flex justify-between items-center mb-3">
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="font-semibold">
               Decks in this Category
             </h3>
@@ -109,19 +107,19 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
             <button
               type="button"
               onClick={() => setShowAddDeckList((prev) => !prev)}
-              className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm"
+              className="rounded-lg bg-blue-500 px-3 py-1 text-sm text-white transition-colors duration-150 hover:bg-blue-600 active:bg-blue-700"
             >
               + Add Deck
             </button>
           </div>
 
           {showAddDeckList && (
-            <div className="mb-4 border rounded-lg bg-gray-50">
-              <div className="max-h-48 overflow-y-auto p-3 space-y-2">
+            <div className="mb-4 rounded-lg border bg-gray-50">
+              <div className="max-h-48 space-y-2 overflow-y-auto p-3">
                 {availableDecks.map((deck) => (
                   <label
                     key={deck.id}
-                    className="flex items-center gap-2 text-sm text-gray-700 hover:bg-gray-100 p-2 rounded cursor-pointer"
+                    className="flex cursor-pointer items-center gap-2 rounded p-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
                     <input
                       type="checkbox"
@@ -136,52 +134,41 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
             </div>
           )}
 
-          <div className="border rounded-lg max-h-64 overflow-y-auto">
+          <div className="max-h-64 overflow-y-auto rounded-lg border">
             <div className="space-y-3 p-3">
               {decks.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">No decks in this category</p>
+                <p className="py-4 text-center text-sm text-gray-400">No decks in this category</p>
               ) : (
                 decks.map((deck) => (
                   <div
                     key={deck.id}
-                    className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50"
+                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-gray-50"
                   >
-
-                    {/* LEFT */}
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="p-2 bg-gray-100 rounded">
-                        <Folder className="w-4 h-4 text-blue-500" />
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="rounded bg-gray-100 p-2">
+                        <Folder className="h-4 w-4 text-blue-500" />
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{deck.name}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{deck.name}</p>
                         <p className="text-sm text-gray-400">
                           {deck.cards} cards • {deck.status}
                         </p>
                       </div>
                     </div>
-
-                    {/* ACTION */}
-                    <div className="flex gap-2 flex-shrink-0 ml-2">
-
-                    </div>
-
                   </div>
                 ))
               )}
             </div>
           </div>
-
         </div>
-
       </div>
 
-      {/* FOOTER */}
-      <div className="flex justify-end gap-3 p-5 border-t">
-
+      <div className="flex justify-end gap-3 border-t p-5">
         <button
+          type="button"
           onClick={onClose}
-          className="px-4 py-2 text-gray-500"
+          className="rounded-lg px-4 py-2 text-gray-500 transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200"
         >
           Cancel
         </button>
@@ -202,13 +189,11 @@ export default function CategoryModal({ onClose, selectedCategoryId }: { onClose
               onClose();
             }
           }}
-          className="px-5 py-2 bg-blue-500 text-white rounded-lg"
+          className="rounded-lg bg-blue-500 px-5 py-2 text-white transition-colors duration-150 hover:bg-blue-600 active:bg-blue-700"
         >
           Save Changes
         </button>
-
       </div>
-
     </Modal>
   );
 }

@@ -6,7 +6,18 @@ import { initUserSession } from './services/CardReviewService'
 import { apiClient } from './services/ApiClient'
 import { initDeckData } from './services/DeckServices'
 
+const THEME_STORAGE_KEY = "flashcard-theme"
+
+function applyInitialTheme() {
+  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+  const shouldUseDark = storedTheme ? storedTheme === "dark" : prefersDark
+
+  document.documentElement.classList.toggle("dark", shouldUseDark)
+}
+
 initUserSession()
+applyInitialTheme()
 
 async function bootstrap() {
   try {
