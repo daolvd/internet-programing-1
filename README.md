@@ -1,51 +1,58 @@
 # Flashcard Learning Platform
 
-A full-stack study application for creating flashcards, grouping them into decks and categories, reviewing them in a browser-based study flow, and tracking learning performance over time.
+A full-stack flashcard study website that helps users create, organise, review, and track flashcards in one single-page application.
 
 ## Problem This Website Solves
 
-Students often manage study cards across scattered notes, screenshots, or static quiz apps that do not provide structure or feedback. This project solves that by giving users one place to create flashcards, organise them by category and deck, study them in interactive modes, and review their progress with analytics such as streak, accuracy, retention, and total study time.
+Many students store revision questions in scattered notes or static quiz tools that do not support structured review, progress tracking, or reusable study flows. This website solves that problem by letting users create flashcards, group them into categories and decks, study them in interactive review modes, and monitor learning performance over time. Instead of switching between different tools for creation, study, and tracking, the user can complete the whole workflow in one place.
 
 ## Technical Stack
 
-- Frontend: React 19, TypeScript, Vite, React Router, Tailwind CSS
-- Styling and UI: Tailwind utility classes, reusable modal and notification providers, Lucide icons
-- Routing: Client-side SPA routing with `BrowserRouter` and nested layout routes
-- Data and API: Spring Boot REST API, JWT-backed API client, MySQL persistence
-- Infrastructure: Docker Compose and Nginx reverse proxy for SPA hosting and `/api` forwarding
+- Frontend: React 19, TypeScript, Vite
+- Styling: Tailwind CSS, reusable UI states, responsive layouts, dark mode toggle
+- Routing: React Router with SPA-style client-side navigation
+- Data/API: Spring Boot REST API, JWT-backed client session, MySQL database
+- Deployment/Infrastructure: Docker Compose, Nginx reverse proxy, containerised frontend and backend
 
 ## Feature List
 
-- Single-page application flow with client-side routing
+- Single-page application routing with component swaps instead of loading new HTML pages
 - Full CRUD for categories, decks, cards, study sessions, and card reviews
-- Quickview and Learn study modes
-- Search across flashcards and jump straight into review mode
-- Recent decks dashboard for faster study access
-- Analytics dashboard with mastery, efficiency, accuracy, retention, and streak metrics
-- Mobile-responsive layouts for dashboard, deck management, and statistics views
-- Accessible modal and confirmation dialogs with keyboard escape handling and focus management
-- Docker-based local development setup
+- Quickview mode for simple question-answer review
+- Learn mode with answer checking and card difficulty selection
+- Search bar to find cards and jump directly into review
+- Recent decks panel for quick return to active study sets
+- Statistics dashboard showing mastery, efficiency, retention, accuracy, and streak
+- Responsive mobile-friendly layouts across dashboard, decks, study, and stats
+- Modal-based create/edit flows instead of separate pages
+- Dark mode switch in the header menu
+- Button feedback, active states, and keyboard-friendly modal interactions
 
 ## Folder Structure
 
-- `frontend/`: React SPA, page components, shared UI, hooks, and API service layer
-- `backend/backend/`: Spring Boot application with controllers, services, repositories, DTOs, models, and tests
-- `docker-compose.yml`: starts MySQL, backend API, and frontend web server together
-- `ERD.png`: database relationship diagram used for planning the application data model
-- `assignment-1/`: supporting coursework folder kept in the repository workspace
+- `frontend/`
+  React SPA source code, pages, shared components, hooks, constants, and API service logic.
+- `backend/backend/`
+  Spring Boot application containing controllers, services, repositories, DTOs, models, and tests.
+- `docker-compose.yml`
+  Starts MySQL, backend API, and frontend web server together for local development/demo.
+- `ERD.png`
+  Entity relationship diagram used for the project database design.
+- `assignment-1/`
+  Supporting coursework folder kept inside the repository workspace.
 
 ## Architecture Summary
 
-- `mysql`: persistent MySQL database for application data
-- `backend`: Spring Boot API on port `8080`
-- `frontend`: production-style Vite build served through Nginx on port `5173`
-- Nginx handles SPA route fallback and proxies `/api/*` requests to the backend service
+- `mysql`: stores persistent application data
+- `backend`: exposes REST endpoints on port `8080`
+- `frontend`: built with Vite and served through Nginx on port `5173`
+- Nginx also proxies `/api/*` requests to the backend so the frontend behaves like one integrated app
 
-## Run With Docker
+## How To Run The Project
 
 ### Prerequisites
 
-- Docker Desktop or Docker Engine with Docker Compose
+- Docker Desktop, or Docker Engine with Docker Compose
 
 ### Start all services
 
@@ -67,18 +74,18 @@ docker compose up --build
 docker compose down
 ```
 
-### Stop services and remove database volume
+### Remove services and database volume
 
 ```bash
 docker compose down -v
 ```
 
-## Development Notes
+## Notes About The Website
 
-- The backend waits for MySQL health checks before startup in Docker
-- The frontend is served via Nginx rather than the Vite dev server in the container setup
-- Frontend routes are handled as an SPA, so page transitions do not require loading a different HTML document
+- The app behaves as an SPA, so navigation happens through routes, modals, and component updates rather than loading multiple HTML pages.
+- The frontend is served through Nginx instead of the Vite dev server in the Docker setup.
+- The backend waits for MySQL health checks before startup in Docker.
 
 ## Challenges Overcome
 
-One major challenge was keeping the application feeling like a real SPA while still supporting multiple business flows such as deck management, review mode, and analytics in one interface. Another challenge was coordinating frontend optimistic updates with backend persistence so that users get immediate feedback without losing database-backed CRUD functionality. The statistics page also required translating raw review and study-session data into metrics that feel meaningful to users rather than just dumping backend values. On the infrastructure side, Docker and Nginx were added so the app can be demonstrated in a more deployment-like environment instead of relying on separate manual startup steps. Finally, accessibility and mobile responsiveness needed deliberate improvements because management modals, dashboards, and tables all behave differently on smaller screens and keyboard-driven interactions.
+One challenge was making the website feel like a true SPA while still supporting several workflows such as deck management, review mode, and analytics inside one interface. Another challenge was connecting local UI responsiveness with backend persistence so that CRUD actions feel immediate but still map to real database operations. It was also necessary to redesign several screens for better mobile responsiveness because dashboard cards, statistics panels, and modal forms behave very differently on smaller viewports. Accessibility and interaction polish were another focus area, especially for modal keyboard handling, button feedback, and clearer focus states. Finally, the project required balancing a clean study-focused UI with enough business logic to make the application feel realistic rather than overly simplistic.
