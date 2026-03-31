@@ -12,13 +12,13 @@ export default function StatCard({ stat }: { stat: Stat }) {
   const isNegative = stat.change.includes("-");
 
   return (
-    <div className="bg-white p-5 rounded-xl border shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow-md">
 
       <div className="flex justify-between items-start">
 
         {/* ICON */}
-        <div className="p-3 rounded-lg bg-gray-100">
-          <Icon className="w-5 h-5 text-gray-600" />
+        <div className="rounded-xl bg-slate-100 p-3">
+          <Icon className="w-5 h-5 text-slate-600" />
         </div>
 
         {/* CHANGE */}

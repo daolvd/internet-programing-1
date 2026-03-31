@@ -83,10 +83,10 @@ export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardForm
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border">
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
 
-      <div className="flex items-center gap-2 mb-4 font-semibold">
-        <Plus className="text-blue-500 w-5 h-5" />
+      <div className="mb-4 flex items-center gap-2 font-semibold text-slate-900">
+        <Plus className="h-5 w-5 text-blue-500" />
         Create New Flashcard
       </div>
 
@@ -95,7 +95,7 @@ export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardForm
         <label className="text-sm font-medium">Question</label>
         <textarea
           placeholder="e.g. What is the capital of France?"
-          className="w-full mt-1 p-3 border rounded-lg bg-gray-50"
+          className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-3"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
         />
@@ -106,7 +106,7 @@ export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardForm
         <label className="text-sm font-medium">Answer</label>
         <textarea
           placeholder="e.g. Paris"
-          className="w-full mt-1 p-3 border rounded-lg bg-gray-50"
+          className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-3"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
         />
@@ -116,7 +116,7 @@ export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardForm
       <div className="mb-4">
         <label className="text-sm font-medium">Category</label>
         <select
-          className="w-full mt-1 p-2 border rounded-lg bg-gray-50"
+          className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2"
           value={selectedCategoryId}
           onChange={(e) => handleCategoryChange(Number(e.target.value))}
         >
@@ -132,7 +132,7 @@ export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardForm
       <div className="mb-4">
         <label className="text-sm font-medium">Deck</label>
         <select
-          className="w-full mt-1 p-2 border rounded-lg bg-gray-50"
+          className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2"
           value={selectedDeckId}
           onChange={(e) => handleDeckChange(Number(e.target.value))}
           disabled={decksInCategory.length === 0}
@@ -150,7 +150,7 @@ export default function CreateFlashcardForm({ onCardAdded }: CreateFlashcardForm
       <button
         type="button"
         onClick={handleAddFlashcard}
-        className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition"
+        className="w-full rounded-xl bg-blue-500 py-3 font-medium text-white shadow-sm transition duration-150 hover:bg-blue-600 active:bg-blue-700"
       >
         ➤ Add Flashcard
       </button>
