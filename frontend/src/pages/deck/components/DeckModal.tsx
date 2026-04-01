@@ -1,13 +1,11 @@
-import { X, Layers, Plus, Pencil, Trash2, Check } from "lucide-react";
-
 import { useEffect, useState } from "react";
+import { X, Layers, Plus, Pencil, Trash2, Check } from "lucide-react";
 import Modal from "../../../components/modal/Modal";
 import { useCards } from "../../../hook/DeckHook";
 import { getNameOfDeck } from "../../../services/DeckServices";
 import { saveDeck } from "../../../services/DeckModalService";
 
 export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onClose: () => void; selectedCategoryId: number; deckId: number }) {
-
   const [title, setTitle] = useState({ name: getNameOfDeck(deckId), id: deckId });
   const { cards } = useCards(title.id);
   const [draftCards, setDraftCards] = useState(cards);
@@ -66,38 +64,35 @@ export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onC
 
   return (
     <Modal onClose={onClose}>
-
-      {/* HEADER */}
-      <div className="flex justify-between items-center p-5 border-b">
-
-        <div className="flex items-center gap-2 font-semibold text-lg">
-          <Layers className="w-5 h-5 text-blue-500" />
+      <div className="flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <Layers className="h-5 w-5 text-blue-500" />
           Edit Deck
         </div>
 
-        <div className="flex items-center gap-4">
-          <button onClick={onClose} className="text-gray-500">
+        <div className="flex items-center justify-end gap-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-3 py-2 text-gray-500 transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200"
+          >
             Cancel
           </button>
 
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+          <button
+            type="button"
+            className="rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors duration-150 hover:bg-blue-600 active:bg-blue-700"
             onClick={() => {
-              saveDeck(draftCards, title.id, title.name, selectedCategoryId)
+              saveDeck(draftCards, title.id, title.name, selectedCategoryId);
               onClose();
-            }
-            }
+            }}
           >
-
             Save Deck
           </button>
         </div>
-
       </div>
 
-      {/* BODY */}
-      <div className="p-5 space-y-6">
-
-        {/* TITLE */}
+      <div className="max-h-[70vh] space-y-6 overflow-y-auto p-5">
         <div>
           <label className="text-sm font-medium text-gray-500">
             DECK TITLE
@@ -106,48 +101,45 @@ export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onC
           <input
             value={title.name}
             onChange={(e) => setTitle({ ...title, name: e.target.value })}
-            className="w-full mt-2 p-3 border rounded-lg bg-gray-50"
+            className="mt-2 w-full rounded-lg border bg-gray-50 p-3"
           />
         </div>
 
-        {/* ADD FLASHCARD */}
-        <div className="border rounded-xl p-4 bg-gray-50 space-y-3">
-
+        <div className="space-y-3 rounded-xl border bg-gray-50 p-4">
           <div className="flex items-center gap-2 font-semibold">
-            <Plus className="w-4 h-4 text-blue-500" />
+            <Plus className="h-4 w-4 text-blue-500" />
             Add New Flashcard
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <textarea
               placeholder="Enter question..."
               value={newQ}
               onChange={(e) => setNewQ(e.target.value)}
-              className="p-2 border rounded"
+              className="rounded border p-2"
             />
 
             <textarea
               placeholder="Enter answer..."
               value={newA}
               onChange={(e) => setNewA(e.target.value)}
-              className="p-2 border rounded"
+              className="rounded border p-2"
             />
           </div>
 
           <div className="flex justify-end">
             <button
+              type="button"
               onClick={addFlashcard}
-              className="bg-blue-100 text-blue-600 px-3 py-1 rounded"
+              className="rounded bg-blue-100 px-3 py-1 text-blue-600 transition-colors duration-150 hover:bg-blue-200 active:bg-blue-300"
             >
               + Add to List
             </button>
           </div>
-
         </div>
 
-        {/* LIST */}
         <div>
-          <div className="flex justify-between mb-3">
+          <div className="mb-3 flex justify-between">
             <h3 className="font-semibold">
               Flashcards in this Deck
             </h3>
@@ -157,30 +149,29 @@ export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onC
             </span>
           </div>
 
-          <div className="space-y-3 max-h-80 overflow-y-auto">
+          <div className="max-h-80 space-y-3 overflow-y-auto">
             {draftCards.map((card) => (
               <div
                 key={card.id}
-                className="flex justify-between items-center p-3 border rounded-lg"
+                className="flex flex-col gap-3 rounded-lg border p-3 md:flex-row md:items-center md:justify-between"
               >
-
                 {editingCardId === card.id ? (
-                  <div className="flex-1 grid grid-cols-2 gap-3 mr-3">
+                  <div className="mr-3 grid flex-1 grid-cols-1 gap-3 md:grid-cols-2">
                     <input
                       value={editingQuestion}
                       onChange={(e) => setEditingQuestion(e.target.value)}
-                      className="p-2 border rounded text-sm"
+                      className="rounded border p-2 text-sm"
                       placeholder="Question"
                     />
                     <input
                       value={editingAnswer}
                       onChange={(e) => setEditingAnswer(e.target.value)}
-                      className="p-2 border rounded text-sm"
+                      className="rounded border p-2 text-sm"
                       placeholder="Answer"
                     />
                   </div>
                 ) : (
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium">{card.question}</p>
                     <p className="text-sm text-gray-400">
                       {card.answer}
@@ -188,24 +179,24 @@ export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onC
                   </div>
                 )}
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 self-end md:self-auto">
                   {editingCardId === card.id ? (
                     <>
                       <button
                         type="button"
                         onClick={handleCancelEditCard}
-                        className="p-1 rounded hover:bg-gray-100"
+                        className="rounded p-1 transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200"
                         aria-label="Cancel edit"
                       >
-                        <X className="w-4 h-4 text-gray-500" />
+                        <X className="h-4 w-4 text-gray-500" />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleSaveEditCard(card.id)}
-                        className="p-1 rounded hover:bg-green-100"
+                        className="rounded p-1 transition-colors duration-150 hover:bg-green-100 active:bg-green-200"
                         aria-label="Save edit"
                       >
-                        <Check className="w-4 h-4 text-green-600" />
+                        <Check className="h-4 w-4 text-green-600" />
                       </button>
                     </>
                   ) : (
@@ -213,37 +204,32 @@ export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onC
                       <button
                         type="button"
                         onClick={() => handleStartEditCard(card.id, card.question, card.answer)}
-                        className="p-1 rounded hover:bg-gray-100"
+                        className="rounded p-1 transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200"
                         aria-label="Edit card"
                       >
-                        <Pencil className="w-4 h-4 text-gray-500" />
+                        <Pencil className="h-4 w-4 text-gray-500" />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteCard(card.id)}
-                        className="p-1 rounded hover:bg-red-100"
+                        className="rounded p-1 transition-colors duration-150 hover:bg-red-100 active:bg-red-200"
                         aria-label="Delete card"
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                        <Trash2 className="h-4 w-4 text-red-500" />
                       </button>
                     </>
                   )}
                 </div>
-
               </div>
             ))}
           </div>
-
         </div>
-
       </div>
 
-      {/* FOOTER */}
-      <div className="flex justify-between p-5 border-t text-sm text-gray-400">
+      <div className="flex justify-between border-t p-5 text-sm text-gray-400">
         <span>Changes are autosaved to draft</span>
         <span>Last edited 2m ago</span>
       </div>
-
     </Modal>
   );
 }

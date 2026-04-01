@@ -38,18 +38,19 @@ export default function SearchBar() {
   };
 
   return (
-    <div className="relative w-64">
-      <div className="flex items-center bg-gray-100 rounded-xl px-4 py-2 focus-within:ring-2 focus-within:ring-blue-400">
+    <div className="relative w-full sm:w-64">
+      <div className="flex items-center rounded-xl bg-gray-100 px-4 py-2 focus-within:ring-2 focus-within:ring-blue-400">
         <button
           type="button"
           onClick={submitSearch}
           className="mr-2"
           aria-label="Search cards"
         >
-          <Search className="w-4 h-4 text-gray-400" />
+          <Search className="h-4 w-4 text-gray-400" />
         </button>
 
         <input
+          aria-label="Search flashcards"
           type="text"
           placeholder="Search cards..."
           value={query}
@@ -62,14 +63,14 @@ export default function SearchBar() {
               setIsOpen(false);
             }
           }}
-          className="bg-transparent outline-none w-full text-sm text-gray-600 placeholder-gray-400"
+          className="w-full bg-transparent text-sm text-gray-600 outline-none placeholder-gray-400"
         />
       </div>
 
       {isOpen && (
-        <div className="absolute top-[46px] left-0 right-0 z-[1200] bg-white border rounded-xl shadow-lg p-2 max-h-80 overflow-y-auto">
+        <div className="absolute left-0 right-0 top-[46px] z-[1200] max-h-80 overflow-y-auto rounded-xl border bg-white p-2 shadow-lg">
           {results.length === 0 ? (
-            <p className="text-sm text-gray-500 px-2 py-3">No matching cards found.</p>
+            <p className="px-2 py-3 text-sm text-gray-500">No matching cards found.</p>
           ) : (
             <div className="space-y-1">
               {results.map((card) => (
@@ -77,10 +78,10 @@ export default function SearchBar() {
                   key={card.id}
                   type="button"
                   onClick={() => openCardInReview(card.deckId, card.id)}
-                  className="w-full text-left px-2 py-2 rounded-lg hover:bg-gray-100"
+                  className="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100"
                 >
-                  <p className="text-sm font-medium text-gray-800 truncate">{card.question}</p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="truncate text-sm font-medium text-gray-800">{card.question}</p>
+                  <p className="truncate text-xs text-gray-500">
                     {getNameOfDeck(card.deckId)} • {getCategoryNameFromDeck(card.deckId)}
                   </p>
                 </button>
