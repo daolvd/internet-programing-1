@@ -24,11 +24,9 @@ export default function StatsGrid({ summary }: StatsGridProps) {
     : "No session yet";
 
   const stats = [
-    { title: "Cards Studied Today", value: summary.cardsStudiedToday, change: `${summary.totalReviews} total`, icon: Book },
     { title: "Current Streak", value: `${summary.currentStreakDays} Days`, change: "based on review logs", icon: Flame },
     { title: "Total Sessions", value: summary.totalSessions, change: latestSessionLabel, icon: Clock },
     { title: "Accuracy", value: formatPercent(summary.accuracy), change: `${summary.correctReviews}/${summary.totalReviews || 0}`, icon: Target },
-    { title: "Retention Rate", value: formatPercent(summary.retentionRate), change: "good + easy", icon: Brain },
     {
       title: "Total Study Time",
       value: formatDuration(summary.totalStudyTimeSeconds),
@@ -38,7 +36,7 @@ export default function StatsGrid({ summary }: StatsGridProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-2">
       {stats.map((stat) => (
         <StatCard key={stat.title} stat={stat} />
       ))}

@@ -1,8 +1,20 @@
 import type { Card } from "../types/Card";
 import type { Deck } from "../types/Deck";
-import { allCards, allDecks, createDeck, fetchCardsByDeck, syncCreateCard, syncCreateDeck, syncDeleteCard, syncUpdateCard, syncUpdateDeck } from "./DeckServices";
+import {
+    allCards,
+    allDecks,
+    createDeck,
+    fetchCardsByDeck,
+    syncCreateCard,
+    syncCreateDeck,
+    syncDeleteCard,
+    syncRefreshCategories,
+    syncRefreshDecks,
+    syncUpdateCard,
+    syncUpdateDeck,
+} from "./DeckServices";
 
-export function saveDeck(listCards: Card[], deckId: number, name: string, categoryId: number) {
+export async function saveDeck(listCards: Card[], deckId: number, name: string, categoryId: number) {
     const deckIndex = allDecks.findIndex((d) => d.id === deckId);
     const isNewDeck = deckIndex === -1;
 
@@ -20,45 +32,39 @@ export function saveDeck(listCards: Card[], deckId: number, name: string, catego
         createDeck(newDeck);
     }
 
-    // 2. Background sync
+    // 2. Sync with backend, then re-fetch canonical deck/category data.
     if (isNewDeck) {
-        syncCreateDeck(name, categoryId)
-            .then(async (serverDeck) => {
-                // Update deck id from server
-                const idx = allDecks.findIndex((d) => d.id === deckId);
-                if (idx !== -1) allDecks[idx] = { ...allDecks[idx], id: serverDeck.id };
+        const serverDeck = await syncCreateDeck(name, categoryId);
 
-                // Create all cards on server
-                for (const card of listCards) {
-                    await syncCreateCard(card.question, card.answer, card.status || "Don't know", serverDeck.id)
-                        .catch(() => { /* individual card fail is acceptable */ });
-                }
-            })
-            .catch(() => { /* notify handled by caller or swallowed */ });
+        const idx = allDecks.findIndex((d) => d.id === deckId);
+        if (idx !== -1) {
+            allDecks[idx] = { ...allDecks[idx], id: serverDeck.id };
+        }
+
+        await Promise.allSettled(
+            listCards.map((card) =>
+                syncCreateCard(card.question, card.answer, card.status || "Don't know", serverDeck.id),
+            ),
+        );
     } else {
-        syncUpdateDeck(deckId, name, categoryId).catch(() => {});
+        await syncUpdateDeck(deckId, name, categoryId);
 
-        // Diff cards: compare with what's on server
-        fetchCardsByDeck(deckId)
-            .then((serverCards) => {
-                const serverIds = new Set(serverCards.map((c) => c.id));
-                const draftIds = new Set(listCards.map((c) => c.id));
+        const serverCards = await fetchCardsByDeck(deckId);
+        const serverIds = new Set(serverCards.map((c) => c.id));
+        const draftIds = new Set(listCards.map((c) => c.id));
 
-                // Delete removed cards
-                serverCards
-                    .filter((c) => !draftIds.has(c.id))
-                    .forEach((c) => syncDeleteCard(c.id).catch(() => {}));
-
-                // Create new cards
-                listCards
-                    .filter((c) => !serverIds.has(c.id))
-                    .forEach((c) => syncCreateCard(c.question, c.answer, c.status || "Don't know", deckId).catch(() => {}));
-
-                // Update existing cards
-                listCards
-                    .filter((c) => serverIds.has(c.id))
-                    .forEach((c) => syncUpdateCard(c.id, c.question, c.answer, c.status || "Don't know", deckId).catch(() => {}));
-            })
-            .catch(() => {});
+        await Promise.allSettled([
+            ...serverCards
+                .filter((c) => !draftIds.has(c.id))
+                .map((c) => syncDeleteCard(c.id)),
+            ...listCards
+                .filter((c) => !serverIds.has(c.id))
+                .map((c) => syncCreateCard(c.question, c.answer, c.status || "Don't know", deckId)),
+            ...listCards
+                .filter((c) => serverIds.has(c.id))
+                .map((c) => syncUpdateCard(c.id, c.question, c.answer, c.status || "Don't know", deckId)),
+        ]);
     }
+
+    await Promise.all([syncRefreshDecks(), syncRefreshCategories()]);
 }

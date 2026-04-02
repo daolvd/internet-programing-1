@@ -4,10 +4,12 @@ import Modal from "../../../components/modal/Modal";
 import { useCards } from "../../../hook/DeckHook";
 import { getNameOfDeck } from "../../../services/DeckServices";
 import { saveDeck } from "../../../services/DeckModalService";
+import { useNotification } from "../../../components/common/NotificationProvider";
 
 export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onClose: () => void; selectedCategoryId: number; deckId: number }) {
   const [title, setTitle] = useState({ name: getNameOfDeck(deckId), id: deckId });
   const { cards } = useCards(title.id);
+  const { notify } = useNotification();
   const [draftCards, setDraftCards] = useState(cards);
 
   const [newQ, setNewQ] = useState("");
@@ -82,9 +84,13 @@ export default function DeckModal({ onClose, selectedCategoryId, deckId }: { onC
           <button
             type="button"
             className="rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors duration-150 hover:bg-blue-600 active:bg-blue-700"
-            onClick={() => {
-              saveDeck(draftCards, title.id, title.name, selectedCategoryId);
-              onClose();
+            onClick={async () => {
+              try {
+                await saveDeck(draftCards, title.id, title.name, selectedCategoryId);
+                onClose();
+              } catch (error) {
+                notify(error instanceof Error ? error.message : "Failed to save deck", "error");
+              }
             }}
           >
             Save Deck
