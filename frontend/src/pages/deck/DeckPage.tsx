@@ -52,6 +52,7 @@ export default function DeckPage() {
       <DeckList
         selectedCategoryId={selectedCategoryId}
         categoryModalOpen={openCreateCategory}
+        refreshTrigger={deckUpdateCounter}
         onDeckChange={() => setDeckUpdateCounter((prev) => prev + 1)}
       />
     </div>

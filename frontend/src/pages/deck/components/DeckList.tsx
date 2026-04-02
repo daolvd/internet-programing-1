@@ -8,10 +8,12 @@ import { getCategoryById, getGeneralCategoryId } from "../../../services/DeckSer
 export default function DeckList({
   selectedCategoryId,
   categoryModalOpen,
+  refreshTrigger = 0,
   onDeckChange,
 }: {
   selectedCategoryId: number;
   categoryModalOpen?: boolean;
+  refreshTrigger?: number;
   onDeckChange?: () => void;
 }) {
   const [openModal, setOpenModal] = useState(false);
@@ -19,7 +21,11 @@ export default function DeckList({
     ? selectedCategoryId
     : getGeneralCategoryId();
   const categoryName = getCategoryById(effectiveCategoryId)?.name ?? "Unknown Category";
-  const { decks, deleteDeck } = useDeck(effectiveCategoryId, openModal || categoryModalOpen || false);
+  const { decks, deleteDeck } = useDeck(
+    effectiveCategoryId,
+    openModal || categoryModalOpen || false,
+    refreshTrigger,
+  );
   const [selectedEditDeck, setSelectedEditDeck] = useState<number>(0);
 
   const handleDelete = (id: number) => {

@@ -1,4 +1,4 @@
-import { AUTH_TOKEN_KEY, CLIENT_SEED_KEY, USER_ID_KEY } from "../constants/storageKeys";
+import { CLIENT_SEED_KEY, USER_ID_KEY } from "../constants/storageKeys";
 
 type QueryValue = string | number | boolean | null | undefined;
 type QueryParams = Record<string, QueryValue>;
@@ -10,7 +10,8 @@ export interface ApiEnvelope<T> {
 }
 
 interface AuthResponse {
-	token: string;
+	id?: number;
+	userId?: number;
 }
 
 export class ApiError extends Error {
@@ -28,6 +29,7 @@ export class ApiError extends Error {
 class ApiClient {
 	private readonly baseUrl: string;
 	private authPromise: Promise<void> | null = null;
+	private hasAuthenticated = false;
 
 	constructor(baseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080") {
 		this.baseUrl = baseUrl.replace(/\/$/, "");
@@ -62,7 +64,8 @@ class ApiClient {
 
 		const response = await fetch(`${this.baseUrl}${path}`, {
 			...init,
-			headers: this.buildHeaders(init.headers, this.getToken(), init.body),
+			credentials: "include",
+			headers: this.buildHeaders(init.headers, init.body),
 		});
 
 		if (response.status === 401 && canRetry) {
@@ -87,24 +90,13 @@ class ApiClient {
 		return this.ensureAuthenticated();
 	}
 
-	setToken(token: string): void {
-		if (typeof window === "undefined") return;
-		window.localStorage.setItem(AUTH_TOKEN_KEY, token);
-
-		const userId = this.parseJwtSubject(token);
-		if (userId) {
-			window.localStorage.setItem(USER_ID_KEY, userId);
-		}
-	}
-
 	clearAuth(): void {
-		if (typeof window === "undefined") return;
-		window.localStorage.removeItem(AUTH_TOKEN_KEY);
+		this.hasAuthenticated = false;
 	}
 
 	private async ensureAuthenticated(): Promise<void> {
 		if (typeof window === "undefined") return;
-		if (this.getToken()) return;
+		if (this.hasAuthenticated) return;
 
 		if (!this.authPromise) {
 			this.authPromise = this.authenticate().finally(() => {
@@ -116,26 +108,42 @@ class ApiClient {
 	}
 
 	private async authenticate(): Promise<void> {
-		const existingClientSeed = this.getClientSeed();
+		const existingClientSeed = this.getLegacyClientSeed();
 
 		if (existingClientSeed) {
 			const loginResult = await fetch(`${this.baseUrl}/api/users/login`, {
 				method: "POST",
+				credentials: "include",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ clientSeed: existingClientSeed }),
 			});
 
 			if (loginResult.ok) {
 				const loginPayload = (await this.parseJson(loginResult)) as ApiEnvelope<AuthResponse>;
-				this.setToken(loginPayload.data.token);
+				this.persistUserId(loginPayload.data);
+				this.clearLegacyClientSeed();
+				this.hasAuthenticated = true;
 				return;
 			}
 		}
 
-		const newClientSeed = this.generateAndPersistClientSeed();
+		const cookieLoginResult = await fetch(`${this.baseUrl}/api/users/login-from-cookie`, {
+			method: "POST",
+			credentials: "include",
+		});
+
+		if (cookieLoginResult.ok) {
+			const cookieLoginPayload = (await this.parseJson(cookieLoginResult)) as ApiEnvelope<AuthResponse>;
+			this.persistUserId(cookieLoginPayload.data);
+			this.hasAuthenticated = true;
+			return;
+		}
+
+		const newClientSeed = this.generateClientSeed();
 
 		const registerResult = await fetch(`${this.baseUrl}/api/users/register`, {
 			method: "POST",
+			credentials: "include",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ clientSeed: newClientSeed }),
 		});
@@ -145,7 +153,9 @@ class ApiClient {
 		}
 
 		const registerPayload = (await this.parseJson(registerResult)) as ApiEnvelope<AuthResponse>;
-		this.setToken(registerPayload.data.token);
+		this.persistUserId(registerPayload.data);
+		this.clearLegacyClientSeed();
+		this.hasAuthenticated = true;
 	}
 
 	private buildPath(path: string, params?: QueryParams): string {
@@ -163,51 +173,40 @@ class ApiClient {
 		return query ? `${path}?${query}` : path;
 	}
 
-	private buildHeaders(headers: HeadersInit | undefined, token: string, body: BodyInit | null | undefined): Headers {
+	private buildHeaders(headers: HeadersInit | undefined, body: BodyInit | null | undefined): Headers {
 		const merged = new Headers(headers);
 
 		if (!(body instanceof FormData) && !merged.has("Content-Type")) {
 			merged.set("Content-Type", "application/json");
 		}
 
-		if (token) {
-			merged.set("Authorization", `Bearer ${token}`);
-		}
-
 		return merged;
 	}
 
-	private getToken(): string {
-		if (typeof window === "undefined") return "";
-		return window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
-	}
-
-	private getClientSeed(): string | null {
+	private getLegacyClientSeed(): string | null {
 		if (typeof window === "undefined") return "";
 		return window.localStorage.getItem(CLIENT_SEED_KEY);
 	}
 
-	private generateAndPersistClientSeed(): string {
+	private clearLegacyClientSeed(): void {
+		if (typeof window === "undefined") return;
+		window.localStorage.removeItem(CLIENT_SEED_KEY);
+	}
+
+	private generateClientSeed(): string {
 		if (typeof window === "undefined") return "";
 		const generated =
 			typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
 				? crypto.randomUUID()
 				: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-
-		window.localStorage.setItem(CLIENT_SEED_KEY, generated);
 		return generated;
 	}
 
-	private parseJwtSubject(token: string): string | null {
-		const parts = token.split(".");
-		if (parts.length < 2 || typeof window === "undefined") return null;
-
-		try {
-			const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-			const payload = JSON.parse(window.atob(normalized)) as { sub?: unknown };
-			return typeof payload.sub === "string" ? payload.sub : null;
-		} catch {
-			return null;
+	private persistUserId(payload: AuthResponse): void {
+		if (typeof window === "undefined") return;
+		const userId = payload.userId ?? payload.id;
+		if (typeof userId === "number") {
+			window.localStorage.setItem(USER_ID_KEY, String(userId));
 		}
 	}
 
@@ -233,4 +232,3 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
-

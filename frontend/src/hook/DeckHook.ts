@@ -4,15 +4,20 @@ import { useNotification } from "../components/common/NotificationProvider";
 import type { Deck } from "../types/Deck";
 import type { Card } from "../types/Card";
 
-export function useDeck(categoryId: number, openModel: boolean) {
+export function useDeck(categoryId: number, openModel: boolean, refreshTrigger = 0) {
   const [data, setData] = useState<Deck[]>([]);
   const { notify } = useNotification();
 
   useEffect(() => {
-    const result = getDecksByCategory(categoryId);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setData(result);
-  }, [categoryId, openModel]);
+    const refreshDecks = () => {
+      setData(getDecksByCategory(categoryId));
+    };
+
+    refreshDecks();
+    window.addEventListener("decks-updated", refreshDecks);
+
+    return () => window.removeEventListener("decks-updated", refreshDecks);
+  }, [categoryId, openModel, refreshTrigger]);
 
   const deleteDeck = (id: number) => {
     setData(prev => prev.filter(d => d.id !== id));

@@ -24,7 +24,7 @@ export default function Header() {
         <div className="flex min-w-0 items-center gap-4">
           <div className="flex items-center gap-2 font-bold text-base sm:text-lg">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 text-white">
-              📘
+              F
             </div>
             <span className="truncate">Flashcard App</span>
           </div>

@@ -3,6 +3,14 @@ import { getOrCreateUserId } from "./CardReviewService";
 import type { StudySession } from "../types/StudySession";
 import { apiClient } from "./ApiClient";
 
+export interface StudySessionResponse {
+    id: number;
+    startTime: number | null;
+    endTime: number | null;
+    deckId: number | null;
+    userId: number | null;
+}
+
 interface CreateStudySessionInput {
     started_at: number;
     ended_at: number;
@@ -75,5 +83,27 @@ export function syncCreateStudySession(startedAt: number, endedAt: number, deckI
         startTime: startedAt,
         endTime: endedAt,
         deckId
+    });
+}
+
+export function createStudySessionOnServer(startedAt: number, deckId: number): Promise<StudySessionResponse> {
+    return apiClient.post<StudySessionResponse>('/api/session-study/create', {
+        startTime: startedAt,
+        endTime: startedAt,
+        deckId,
+    });
+}
+
+export function updateStudySessionOnServer(
+    id: number,
+    startedAt: number,
+    endedAt: number,
+    deckId: number
+): Promise<StudySessionResponse> {
+    return apiClient.put<StudySessionResponse>('/api/session-study/update', {
+        id,
+        startTime: startedAt,
+        endTime: endedAt,
+        deckId,
     });
 }
