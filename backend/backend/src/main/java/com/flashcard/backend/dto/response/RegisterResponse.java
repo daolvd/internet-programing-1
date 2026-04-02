@@ -8,8 +8,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class RegisterResponse {
-    private String clientSeed;
     private Long id;
     private LocalDateTime createdAt;
-    private String token;
 }

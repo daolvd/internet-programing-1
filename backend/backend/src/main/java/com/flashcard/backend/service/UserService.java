@@ -8,7 +8,6 @@ import com.flashcard.backend.model.Category;
 import com.flashcard.backend.model.User;
 import com.flashcard.backend.repository.CategoryRepository;
 import com.flashcard.backend.repository.UserRepository;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,9 +28,8 @@ public class UserService {
     public LoginResponse loginByClientSeed(String clientSeed) {
         User user = userRepository.findByClientSeed(clientSeed);
         if (user == null) throw new NotFoundException("User not found");
-        String token = jwtService.generateToken(user.getId(), user.getClientSeed());
         LoginResponse loginResponse = new LoginResponse();
-        loginResponse.setToken(token);
+        loginResponse.setUserId(user.getId());
         return loginResponse;
     }
 
@@ -49,8 +47,12 @@ public class UserService {
         categoryRepository.save(category);
         System.out.println("ID: " + user.getId());
         System.out.println("CreatedAt: " + user.getCreatedAt());
-        var res = ObjectMapperUtils.map(user, RegisterResponse.class);
-        res.setToken(jwtService.generateToken(user.getId(), user.getClientSeed()));
-        return res;
+        return ObjectMapperUtils.map(user, RegisterResponse.class);
+    }
+
+    public String issueJwtForClientSeed(String clientSeed) {
+        User user = userRepository.findByClientSeed(clientSeed);
+        if (user == null) throw new NotFoundException("User not found");
+        return jwtService.generateToken(user.getId(), user.getClientSeed());
     }
 }
