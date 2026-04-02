@@ -10,6 +10,14 @@ export interface CreateCardReviewInput {
     response_time_ms: number;
 }
 
+export interface CreateServerCardReviewInput {
+    cardId: number;
+    isCorrect: boolean;
+    rating: string;
+    responseTimeMs: number;
+    studySessionId: number;
+}
+
 function generateId(): string {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
         return crypto.randomUUID();
@@ -115,6 +123,17 @@ export function syncCreateCardReview(
         responseTimeMs,
         studySessionId,
         reviewAt: Date.now()
+    });
+}
+
+export function createCardReviewOnServer(input: CreateServerCardReviewInput): Promise<void> {
+    return apiClient.post<void>('/api/card-review/create', {
+        cardId: input.cardId,
+        isCorrect: input.isCorrect,
+        rating: input.rating,
+        responseTimeMs: input.responseTimeMs,
+        studySessionId: input.studySessionId,
+        reviewAt: Date.now(),
     });
 }
 

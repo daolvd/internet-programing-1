@@ -5,14 +5,14 @@ import ProgressBar from "./components/ProgressBar";
 import FlashcardViewer from "./components/FlashcardViewer";
 import StudyControls from "./components/StudyControls";
 import Modal from "../../components/modal/Modal";
-
 import { fetchCardsByDeck, getCardsByDeck, getNameOfDeck, updateDeckLastActive } from "../../services/DeckServices";
 import { LAST_REVIEW_DECK_KEY } from "../../constants/storageKeys";
 import { INITIAL_LEARN_FILTERS, type LearnFilterKey } from "../../constants/study";
 import LearnCardPanel from "./components/LearnCardPanel";
-import { type CreateCardReviewInput, createCardReview, getCardReviews, getOrCreateUserId, syncCreateCardReviewList } from "../../services/CardReviewService";
-import { createStudySession, syncCreateStudySession } from "../../services/StudySessionService";
-import { findFallbackDeckId, formatSessionClock, getCurrentStreakDays, normalizeLearnStatus } from "../../utils/Utils";
+import { createCardReviewOnServer } from "../../services/CardReviewService";
+import { getMetricsSummary } from "../../services/MetricsService";
+import { createStudySessionOnServer, updateStudySessionOnServer } from "../../services/StudySessionService";
+import { findFallbackDeckId, formatSessionClock, normalizeLearnStatus } from "../../utils/Utils";
 
 export default function StudyPage() {
   const [searchParams] = useSearchParams();
@@ -35,10 +35,33 @@ export default function StudyPage() {
 
   const [cards, setCards] = useState(() => getCardsByDeck(resolvedDeckId));
   const [isLoadingCards, setIsLoadingCards] = useState(true);
+  const [index, setIndex] = useState(0);
+  const [show, setShow] = useState(false);
+  const [activeTab, setActiveTab] = useState<"quickview" | "learn">("quickview");
+  const [learnQueueSize, setLearnQueueSize] = useState(cards.length);
+  const [learnCurrent, setLearnCurrent] = useState(cards.length > 0 ? 1 : 0);
+  const [isLearnSettingOpen, setIsLearnSettingOpen] = useState(false);
+  const [learnShowAll, setLearnShowAll] = useState(true);
+  const [learnFilters, setLearnFilters] = useState(INITIAL_LEARN_FILTERS);
+  const [studyStartedAt, setStudyStartedAt] = useState<number | null>(null);
+  const [studySessionId, setStudySessionId] = useState<number | null>(null);
+  const [studySessionSaved, setStudySessionSaved] = useState(false);
+  const [completedSessionTime, setCompletedSessionTime] = useState<number | null>(null);
+  const [streakDays, setStreakDays] = useState(0);
+  const [clockNow, setClockNow] = useState(() => Date.now());
+
+  const creatingStudySessionRef = useRef<Promise<number | null> | null>(null);
+  const sessionDataRef = useRef({
+    studyStartedAt: null as number | null,
+    studySessionId: null as number | null,
+    studySessionSaved: false,
+    resolvedDeckId,
+  });
 
   useEffect(() => {
     let isMounted = true;
     const localCards = getCardsByDeck(resolvedDeckId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCards(localCards);
 
     if (resolvedDeckId > 0) {
@@ -47,14 +70,18 @@ export default function StudyPage() {
       setIsLoadingCards(true);
 
       void fetchCardsByDeck(resolvedDeckId)
-        .then(fetchedCards => {
-          if (isMounted) setCards(fetchedCards);
+        .then((fetchedCards) => {
+          if (isMounted) {
+            setCards(fetchedCards);
+          }
         })
         .finally(() => {
-          if (isMounted) setIsLoadingCards(false);
+          if (isMounted) {
+            setIsLoadingCards(false);
+          }
         });
     } else {
-       setIsLoadingCards(false);
+      setIsLoadingCards(false);
     }
 
     return () => {
@@ -67,22 +94,6 @@ export default function StudyPage() {
     : -1;
   const initialIndex = targetIndex >= 0 ? targetIndex : 0;
 
-  const [index, setIndex] = useState(initialIndex);
-  const [show, setShow] = useState(false);
-  const [activeTab, setActiveTab] = useState<"quickview" | "learn">("quickview");
-  const [learnQueueSize, setLearnQueueSize] = useState(cards.length);
-  const [learnCurrent, setLearnCurrent] = useState(cards.length > 0 ? 1 : 0);
-  const [quickCardStartedAt, setQuickCardStartedAt] = useState(() => Date.now());
-  const [quickCardRecorded, setQuickCardRecorded] = useState(false);
-  const [isLearnSettingOpen, setIsLearnSettingOpen] = useState(false);
-  const [learnShowAll, setLearnShowAll] = useState(true);
-  const [learnFilters, setLearnFilters] = useState(INITIAL_LEARN_FILTERS);
-  const [studyStartedAt, setStudyStartedAt] = useState<number | null>(null);
-  const [studySessionSaved, setStudySessionSaved] = useState(false);
-  const [completedSessionTime, setCompletedSessionTime] = useState<number | null>(null);
-  const [clockNow, setClockNow] = useState(() => Date.now());
-  const [sessionReviews, setSessionReviews] = useState<CreateCardReviewInput[]>([]);
-
   const filteredLearnCards = useMemo(() => {
     if (learnShowAll) return cards;
 
@@ -93,25 +104,23 @@ export default function StudyPage() {
   }, [cards, learnFilters, learnShowAll]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIndex(initialIndex);
     setShow(false);
     setLearnQueueSize(cards.length);
     setLearnCurrent(cards.length > 0 ? 1 : 0);
     setStudyStartedAt(null);
+    setStudySessionId(null);
     setStudySessionSaved(false);
     setCompletedSessionTime(null);
-    setSessionReviews([]);
+    creatingStudySessionRef.current = null;
   }, [resolvedDeckId, initialIndex, cards.length]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLearnQueueSize(filteredLearnCards.length);
     setLearnCurrent(filteredLearnCards.length > 0 ? 1 : 0);
   }, [filteredLearnCards.length]);
-
-  useEffect(() => {
-    setQuickCardStartedAt(Date.now());
-    setQuickCardRecorded(false);
-  }, [index, resolvedDeckId]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -123,86 +132,122 @@ export default function StudyPage() {
     };
   }, []);
 
-  const submitSessionToBackend = (startedAt: number, endedAt: number, reviews: CreateCardReviewInput[]) => {
-    if (reviews.length === 0) return;
-    syncCreateStudySession(startedAt, endedAt, resolvedDeckId)
-      .then((session) => {
-        syncCreateCardReviewList(reviews, session.id)
-          .catch((err) => console.error("Failed to sync reviews list", err));
+  const refreshStudyInsights = () => {
+    getMetricsSummary()
+      .then((summary) => {
+        setStreakDays(summary.currentStreakDays);
       })
-      .catch((err) => console.error("Failed to sync study session", err));
+      .catch((err) => console.error("Failed to refresh study insights", err));
   };
 
-  // Keep refs for latest values without triggering useEffect cleanup on every change
-  const sessionDataRef = useRef({
-    studyStartedAt,
-    studySessionSaved,
-    sessionReviews,
-    resolvedDeckId
-  });
+  const ensureStudySession = async (): Promise<number | null> => {
+    if (resolvedDeckId <= 0) {
+      return null;
+    }
+
+    if (studySessionId !== null) {
+      return studySessionId;
+    }
+
+    if (creatingStudySessionRef.current) {
+      return creatingStudySessionRef.current;
+    }
+
+    const startedAt = studyStartedAt ?? Date.now();
+    if (studyStartedAt === null) {
+      setStudyStartedAt(startedAt);
+    }
+
+    const createPromise = createStudySessionOnServer(startedAt, resolvedDeckId)
+      .then((session) => {
+        setStudySessionId(session.id);
+        setStudySessionSaved(false);
+        return session.id;
+      })
+      .catch((err) => {
+        console.error("Failed to create study session", err);
+        return null;
+      })
+      .finally(() => {
+        creatingStudySessionRef.current = null;
+      });
+
+    creatingStudySessionRef.current = createPromise;
+    return createPromise;
+  };
+
+  const finalizeStudySession = async (
+    endTime: number,
+    lockSessionClock: boolean,
+    sessionIdOverride?: number
+  ) => {
+    const activeSessionId = sessionIdOverride ?? studySessionId;
+    if (studySessionSaved || studyStartedAt === null || activeSessionId === null) {
+      return;
+    }
+
+    if (lockSessionClock) {
+      const elapsedSeconds = Math.floor((endTime - studyStartedAt) / 1000);
+      setCompletedSessionTime(elapsedSeconds);
+    }
+
+    try {
+      await updateStudySessionOnServer(activeSessionId, studyStartedAt, endTime, resolvedDeckId);
+      setStudySessionSaved(true);
+    } catch (err) {
+      console.error("Failed to finalize study session", err);
+    }
+  };
 
   useEffect(() => {
     sessionDataRef.current = {
       studyStartedAt,
+      studySessionId,
       studySessionSaved,
-      sessionReviews,
-      resolvedDeckId
+      resolvedDeckId,
     };
-  }, [studyStartedAt, studySessionSaved, sessionReviews, resolvedDeckId]);
+  }, [studyStartedAt, studySessionId, studySessionSaved, resolvedDeckId]);
 
-  // Save incomplete session when leaving page
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      const { studyStartedAt, studySessionSaved, sessionReviews } = sessionDataRef.current;
-      if (studyStartedAt !== null && !studySessionSaved) {
-        const endTime = Date.now();
-        createStudySession({
-          user_id: getOrCreateUserId(),
-          started_at: studyStartedAt,
-          ended_at: endTime,
-        });
-        submitSessionToBackend(studyStartedAt, endTime, sessionReviews);
+    refreshStudyInsights();
+  }, []);
+
+  useEffect(() => {
+    const flushSession = () => {
+      const currentSession = sessionDataRef.current;
+      if (
+        currentSession.studyStartedAt === null ||
+        currentSession.studySessionId === null ||
+        currentSession.studySessionSaved
+      ) {
+        return;
       }
+
+      void updateStudySessionOnServer(
+        currentSession.studySessionId,
+        currentSession.studyStartedAt,
+        Date.now(),
+        currentSession.resolvedDeckId
+      ).catch((err) => console.error("Failed to flush study session", err));
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("beforeunload", flushSession);
+    window.addEventListener("pagehide", flushSession);
 
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      // Also save on component unmount (e.g., when navigating away)
-      const { studyStartedAt, studySessionSaved, sessionReviews } = sessionDataRef.current;
-      if (studyStartedAt !== null && !studySessionSaved) {
-        const endTime = Date.now();
-        createStudySession({
-          user_id: getOrCreateUserId(),
-          started_at: studyStartedAt,
-          ended_at: endTime,
-        });
-        submitSessionToBackend(studyStartedAt, endTime, sessionReviews);
-      }
+      window.removeEventListener("beforeunload", flushSession);
+      window.removeEventListener("pagehide", flushSession);
+      flushSession();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array -> cleanup only runs exactly on unmount
-
-  const currentUserId = useMemo(() => getOrCreateUserId(), []);
-  const streakDays = useMemo(() => {
-    const timestamps = getCardReviews()
-      .filter((review) => review.user_id === currentUserId)
-      .map((review) => review.reviewed_at);
-
-    return getCurrentStreakDays(timestamps);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId, clockNow, quickCardRecorded, learnCurrent]);
+  }, []);
 
   const sessionLabel = useMemo(() => {
     if (studyStartedAt === null) return "00:00";
 
-    // If session is completed, show fixed time
     if (completedSessionTime !== null) {
       return formatSessionClock(completedSessionTime);
     }
 
-    // Otherwise show live elapsed time
     const elapsedSeconds = Math.floor((clockNow - studyStartedAt) / 1000);
     return formatSessionClock(elapsedSeconds);
   }, [clockNow, studyStartedAt, completedSessionTime]);
@@ -237,52 +282,27 @@ export default function StudyPage() {
   };
 
   const revealQuickviewAnswer = () => {
-    // Start session timing on first meaningful interaction in quickview mode.
-    const startedAt = studyStartedAt ?? Date.now();
-    if (studyStartedAt === null) {
-      setStudyStartedAt(startedAt);
-    }
-
+    void ensureStudySession();
     setShow(true);
-    // Only record one review per card reveal cycle.
-    if (quickCardRecorded) {
-      return;
-    }
-
-    const newReview: CreateCardReviewInput = {
-      card_id: current.id,
-      deck_id: current.deckId,
-      is_correct: true,
-      rating: "good",
-      response_time_ms: Date.now() - quickCardStartedAt,
-    };
-    createCardReview(newReview);
-    setSessionReviews((prev) => [...prev, newReview]);
-    setQuickCardRecorded(true);
   };
 
   const startStudySessionIfNeeded = () => {
-    if (studyStartedAt === null) {
-      setStudyStartedAt(Date.now());
-    }
+    void ensureStudySession();
   };
 
   const completeStudySessionIfNeeded = () => {
-    if (studySessionSaved || studyStartedAt === null) {
-      return;
-    }
+    void (async () => {
+      if (studySessionSaved) {
+        return;
+      }
 
-    const endTime = Date.now();
-    const elapsedSeconds = Math.floor((endTime - studyStartedAt) / 1000);
-    setCompletedSessionTime(elapsedSeconds);
+      const ensuredSessionId = await ensureStudySession();
+      if (ensuredSessionId === null) {
+        return;
+      }
 
-    createStudySession({
-      user_id: getOrCreateUserId(),
-      started_at: studyStartedAt,
-      ended_at: endTime,
-    });
-    setStudySessionSaved(true);
-    submitSessionToBackend(studyStartedAt, endTime, sessionReviews);
+      await finalizeStudySession(Date.now(), true, ensuredSessionId);
+    })();
   };
 
   const handleToggleAllFilters = (checked: boolean) => {
@@ -294,17 +314,15 @@ export default function StudyPage() {
 
   const handleToggleLearnFilter = (key: LearnFilterKey, checked: boolean) => {
     setLearnFilters((prev) => {
-      const next = { ...prev, [key]: checked };
-      const allEnabled = Object.values(next).every(Boolean);
+      const nextFilters = { ...prev, [key]: checked };
+      const allEnabled = Object.values(nextFilters).every(Boolean);
       setLearnShowAll(allEnabled);
-      return next;
+      return nextFilters;
     });
   };
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen flex flex-col items-center">
-
-      {/* PROGRESS */}
       <div className="w-full max-w-3xl">
         <h1 className="text-2xl font-bold mb-4">Study: {deckName}</h1>
         <div className="mb-4 flex items-center justify-between">
@@ -312,16 +330,14 @@ export default function StudyPage() {
             <button
               type="button"
               onClick={() => setActiveTab("quickview")}
-              className={`px-4 py-1.5 text-sm rounded-md ${activeTab === "quickview" ? "bg-blue-500 text-white" : "text-gray-600"
-                }`}
+              className={`px-4 py-1.5 text-sm rounded-md ${activeTab === "quickview" ? "bg-blue-500 text-white" : "text-gray-600"}`}
             >
               Quickview
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("learn")}
-              className={`px-4 py-1.5 text-sm rounded-md ${activeTab === "learn" ? "bg-blue-500 text-white" : "text-gray-600"
-                }`}
+              className={`px-4 py-1.5 text-sm rounded-md ${activeTab === "learn" ? "bg-blue-500 text-white" : "text-gray-600"}`}
             >
               Learn
             </button>
@@ -347,12 +363,10 @@ export default function StudyPage() {
 
       {activeTab === "quickview" ? (
         <>
-          {/* CARD */}
           <div className="w-full max-w-3xl mt-6">
             <FlashcardViewer card={current} show={show} onFlip={() => setShow(!show)} />
           </div>
 
-          {/* CONTROLS */}
           <div className="mt-6">
             <StudyControls
               onPrev={() => {
@@ -364,7 +378,6 @@ export default function StudyPage() {
                 next();
               }}
               onReveal={() => {
-                // Button acts as a toggle; review is only recorded when revealing.
                 if (show) {
                   setShow(false);
                   return;
@@ -380,28 +393,39 @@ export default function StudyPage() {
           cards={filteredLearnCards}
           onQueueSizeChange={setLearnQueueSize}
           onReview={(review) => {
-            startStudySessionIfNeeded();
-            const newReview: CreateCardReviewInput = {
-              card_id: review.cardId,
-              deck_id: review.deckId,
-              is_correct: review.isCorrect,
-              rating: review.rating,
-              response_time_ms: review.responseTimeMs,
-            };
-            createCardReview(newReview);
-            setSessionReviews((prev) => [...prev, newReview]);
+            void (async () => {
+              const sessionId = await ensureStudySession();
+              if (sessionId === null) {
+                return;
+              }
+
+              try {
+                await createCardReviewOnServer({
+                  cardId: review.cardId,
+                  isCorrect: review.isCorrect,
+                  rating: review.rating,
+                  responseTimeMs: review.responseTimeMs,
+                  studySessionId: sessionId,
+                });
+                refreshStudyInsights();
+              } catch (err) {
+                console.error("Failed to create review", err);
+              }
+            })();
           }}
-          onProgressChange={(current, total) => {
-            setLearnCurrent(current);
+          onProgressChange={(currentProgress, total) => {
+            setLearnCurrent(currentProgress);
             setLearnQueueSize(total);
-            if (total > 0 && current === total) {
+            if (total > 0 && currentProgress === total) {
               completeStudySessionIfNeeded();
             }
           }}
           onReviewAgain={() => {
-            setStudyStartedAt(Date.now());
+            setStudyStartedAt(null);
+            setStudySessionId(null);
             setStudySessionSaved(false);
             setCompletedSessionTime(null);
+            creatingStudySessionRef.current = null;
           }}
         />
       )}
@@ -468,11 +492,9 @@ export default function StudyPage() {
         </Modal>
       )}
 
-      {/* FOOTER */}
       <div className="mt-6 text-sm text-gray-400">
         Session: {sessionLabel} • Streak: {streakDays} day{streakDays === 1 ? "" : "s"}
       </div>
-
     </div>
   );
 }
